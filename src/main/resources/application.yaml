@@ -1,0 +1,58 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: YuQue
+  profiles:
+    active: dev
+  datasource:
+    url: jdbc:mysql://${pickyboy.db.host}:3306/YuQue?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: yuque
+    password: ${pickyboy.db.pw}
+  # JSON??????
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    default-property-inclusion: non_null
+mybatis-plus:
+  configuration:
+    default-enum-type-handler: com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      update-strategy: not_null
+      id-type: auto
+logging:
+  level:
+    com.pickyboy: debug
+    # ????SQL??
+    com.pickyboy.yuquebackend.mapper: debug
+  pattern:
+    dateformat: HH:mm:ss:SSS
+
+
+# JWT??
+yuque:
+  jwt:
+    secret-key: "yuque-very-long-secret-key-for-jwt-2025"
+    expire-hours: 24
+    refresh-threshold-hours: 2
+    token-prefix: "Bearer "
+    header-name: "Authorization"
+    auto-refresh: true
+
+pickyboy:
+  auth:
+    excludePaths:
+      - /api/auth/login
+      - /api/auth/register
+      - /api/test/public
+      - /error
+      - /favicon.ico
+      - /swagger-ui/**
+      - /v3/api-docs/**
+      - /doc.html
+      - /webjars/**
+      - /actuator/**
+
