@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 3000
 spring:
   application:
     name: YuQue
@@ -22,7 +22,7 @@ mybatis-plus:
   global-config:
     db-config:
       update-strategy: not_null
-      id-type: auto
+      id-type: assign_id
 logging:
   level:
     com.pickyboy: debug

@@ -6,21 +6,20 @@ import java.util.Map;
 
 import javax.crypto.SecretKey;
 
-import com.pickyboy.yuquebackend.common.config.JwtProperties;
-import com.pickyboy.yuquebackend.common.context.UserContext;
-import com.pickyboy.yuquebackend.common.exception.JwtException;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-
+import com.pickyboy.yuquebackend.common.config.JwtProperties;
+import com.pickyboy.yuquebackend.common.context.UserContext;
+import com.pickyboy.yuquebackend.common.exception.JwtException;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
-import io.jsonwebtoken.UnsupportedJwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,17 +48,15 @@ public class JwtUtil {
      *
      * @param userId 用户ID
      * @param username 用户名
-     * @param role 角色
      * @return 生成的Token
      */
-    public String generateToken(Long userId, String username, String role) {
+    public String generateToken(Long userId, String username) {
         Date now = new Date();
         Date expiration = new Date(now.getTime() + jwtProperties.getExpireHours() * 60 * 60 * 1000L);
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
         claims.put("username", username);
-        claims.put("role", role);
         claims.put("iat", now.getTime());
 
         return Jwts.builder()
@@ -94,10 +91,9 @@ public class JwtUtil {
                 // 生成新Token
                 Long userId = ((Number) claims.get("userId")).longValue();
                 String username = (String) claims.get("username");
-                String role = (String) claims.get("role");
 
                 log.info("Token即将过期，自动刷新. 用户: {}, 剩余时间: {}ms", username, remainingTime);
-                return generateToken(userId, username, role);
+                return generateToken(userId, username);
             }
 
             return token;
@@ -165,7 +161,6 @@ public class JwtUtil {
 
         Long userId = ((Number) claims.get("userId")).longValue();
         String username = (String) claims.get("username");
-        String role = (String) claims.get("role");
         Long issuedAt = ((Number) claims.get("iat")).longValue();
         Long expiration = claims.getExpiration().getTime();
 
@@ -210,16 +205,7 @@ public class JwtUtil {
         return (String) claims.get("username");
     }
 
-    /**
-     * 从Token中提取用户角色
-     *
-     * @param token JWT字符串
-     * @return 用户角色
-     */
-    public String getRole(String token) {
-        Claims claims = parseToken(token);
-        return (String) claims.get("role");
-    }
+
 
     /**
      * 检查Token是否即将过期
