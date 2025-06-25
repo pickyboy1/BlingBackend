@@ -15,6 +15,7 @@ import com.pickyboy.yuquebackend.common.response.Result;
 import com.pickyboy.yuquebackend.domain.dto.LoginRequest;
 import com.pickyboy.yuquebackend.domain.dto.RegisterRequest;
 import com.pickyboy.yuquebackend.domain.dto.UpdateUserRequest;
+import com.pickyboy.yuquebackend.domain.entity.KnowledgeBases;
 import com.pickyboy.yuquebackend.domain.entity.Users;
 import com.pickyboy.yuquebackend.domain.vo.AuthResponse;
 import com.pickyboy.yuquebackend.domain.vo.UserPublicProfile;
@@ -98,6 +99,20 @@ public class UserController {
     }
 
     /**
+     * 获取指定用户的公开知识库列表
+     * GET /users/{userId}/knowledge-bases
+     *
+     * @param userId 用户ID
+     * @return 用户公开知识库列表
+     */
+    @GetMapping("/user/{userId}/public-kbs")
+    public Result<List<KnowledgeBases>> getUserKnowledgeBases(@PathVariable Long userId) {
+        log.info("获取用户公开知识库: userId={}", userId);
+        List<KnowledgeBases> knowledgeBases = userService.getUserPublicKnowledgeBases(userId);
+        return Result.success(knowledgeBases);
+    }
+
+    /**
      * 查看指定用户的公开主页信息
      * GET /users/{userId}/profile
      *
@@ -111,19 +126,7 @@ public class UserController {
         return Result.success(profile);
     }
 
-    /**
-     * 获取指定用户的公开知识库列表
-     * GET /users/{userId}/knowledge-bases
-     *
-     * @param userId 用户ID
-     * @return 用户公开知识库列表
-     */
-    @GetMapping("/users/{userId}/knowledge-bases")
-    public Result<List<?>> getUserKnowledgeBases(@PathVariable Long userId) {
-        log.info("获取用户公开知识库: userId={}", userId);
-        List<?> knowledgeBases = knowledgeBaseService.getUserPublicKnowledgeBases(userId);
-        return Result.success(knowledgeBases);
-    }
+// todo:
 
     /**
      * 关注用户

@@ -1,9 +1,13 @@
 package com.pickyboy.yuquebackend.domain.vo;
 
+import java.util.List;
+
+import com.pickyboy.yuquebackend.domain.entity.KnowledgeBases;
+
 import lombok.Data;
 
 /**
- * 用户公开信息VO
+ * 用户主页信息VO
  *
  * @author pickyboy
  */
@@ -44,4 +48,9 @@ public class UserPublicProfile {
      * 关注数
      */
     private Integer followedCount;
+
+    /**
+     * 知识库列表
+     */
+    private List<KnowledgeBases> knowledgeBases;
 }

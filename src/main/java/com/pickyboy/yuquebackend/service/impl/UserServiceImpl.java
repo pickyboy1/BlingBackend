@@ -14,10 +14,12 @@ import com.pickyboy.yuquebackend.common.utils.PasswordUtil;
 import com.pickyboy.yuquebackend.domain.dto.LoginRequest;
 import com.pickyboy.yuquebackend.domain.dto.RegisterRequest;
 import com.pickyboy.yuquebackend.domain.dto.UpdateUserRequest;
+import com.pickyboy.yuquebackend.domain.entity.KnowledgeBases;
 import com.pickyboy.yuquebackend.domain.entity.Users;
 import com.pickyboy.yuquebackend.domain.vo.AuthResponse;
 import com.pickyboy.yuquebackend.domain.vo.UserPublicProfile;
 import com.pickyboy.yuquebackend.mapper.UsersMapper;
+import com.pickyboy.yuquebackend.service.IKnowledgeBaseService;
 import com.pickyboy.yuquebackend.service.IUserService;
 
 import lombok.RequiredArgsConstructor;
@@ -35,6 +37,7 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
 
     private final JwtUtil jwtUtil;
     private final UserContext userContext;
+    private final IKnowledgeBaseService knowledgeBaseService;
 
     @Override
     public boolean register(RegisterRequest registerRequest) {
@@ -111,10 +114,30 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
     }
 
     @Override
+            public List<KnowledgeBases> getUserPublicKnowledgeBases(Long userId) {
+        log.info("获取用户公开知识库: userId={}", userId);
+        return knowledgeBaseService.getUserPublicKnowledgeBases(userId);
+    }
+
+
+    @Override
     public UserPublicProfile getUserPublicProfile(Long userId) {
-        // TODO: 实现获取用户公开信息逻辑
         log.info("获取用户公开信息: userId={}", userId);
-        throw new UnsupportedOperationException("待实现");
+        Users user = getById(userId);
+        if(user == null){
+            return null;
+        }
+        UserPublicProfile userPublicProfile = new UserPublicProfile();
+        userPublicProfile.setId(user.getId());
+        userPublicProfile.setNickname(user.getNickname());
+        userPublicProfile.setAvatarUrl(user.getAvatarUrl());
+        userPublicProfile.setDescription(user.getDescription());
+        userPublicProfile.setLocation(user.getLocation());
+        userPublicProfile.setFollowerCount(user.getFollowerCount());
+        userPublicProfile.setFollowedCount(user.getFollowedCount());
+        
+        userPublicProfile.setKnowledgeBases(knowledgeBaseService.getUserPublicKnowledgeBases(userId));
+        return userPublicProfile;
     }
 
     @Override

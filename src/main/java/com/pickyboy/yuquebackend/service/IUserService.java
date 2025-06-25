@@ -5,6 +5,7 @@ import java.util.List;
 import com.pickyboy.yuquebackend.domain.dto.LoginRequest;
 import com.pickyboy.yuquebackend.domain.dto.RegisterRequest;
 import com.pickyboy.yuquebackend.domain.dto.UpdateUserRequest;
+import com.pickyboy.yuquebackend.domain.entity.KnowledgeBases;
 import com.pickyboy.yuquebackend.domain.entity.Users;
 import com.pickyboy.yuquebackend.domain.vo.AuthResponse;
 import com.pickyboy.yuquebackend.domain.vo.UserPublicProfile;
@@ -54,6 +55,14 @@ public interface IUserService {
      * @return 用户公开信息
      */
     UserPublicProfile getUserPublicProfile(Long userId);
+
+    /**
+     * 获取指定用户的公开知识库列表
+     *
+     * @param userId 用户ID
+     * @return 用户公开知识库列表
+     */
+    List<KnowledgeBases> getUserPublicKnowledgeBases(Long userId);
 
     /**
      * 关注用户
