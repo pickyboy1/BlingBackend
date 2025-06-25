@@ -54,15 +54,15 @@ public interface IKnowledgeBaseService {
      * @param updateRequest 更新请求
      * @return 更新后的知识库信息
      */
-    KnowledgeBases updateKnowledgeBase(Long kbId, InsertKnowledgeBaseRequest updateRequest);
+    boolean updateKnowledgeBase(Long kbId, InsertKnowledgeBaseRequest updateRequest);
 
     /**
      * 删除知识库 (逻辑删除)
-     * 将知识库及其下的所有文档移动到回收站
+     *
      *
      * @param kbId 知识库ID
      */
-    void deleteKnowledgeBase(Long kbId);
+    boolean deleteKnowledgeBase(Long kbId);
 
     /**
      * 从回收站恢复知识库

@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.pickyboy.yuquebackend.common.context.UserContext;
+import com.pickyboy.yuquebackend.common.utils.CurrentHolder;
 import com.pickyboy.yuquebackend.domain.dto.InsertKnowledgeBaseRequest;
 import com.pickyboy.yuquebackend.domain.entity.KnowledgeBases;
 import com.pickyboy.yuquebackend.domain.entity.Resources;
@@ -33,12 +33,11 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBasesMapper, KnowledgeBases> implements IKnowledgeBaseService {
 
-    private final UserContext userContext;
     private final IResourceService resourceService;
     @Override
     public List<KbsWithRecentResourceVo> getUserKnowledgeBases(boolean withRecentResources) {
         log.info("获取当前用户的知识库列表");
-        List<KnowledgeBases> knowledgeBases = list(new LambdaQueryWrapper<KnowledgeBases>().eq(KnowledgeBases::getUserId, userContext.getUserId()));
+        List<KnowledgeBases> knowledgeBases = list(new LambdaQueryWrapper<KnowledgeBases>().eq(KnowledgeBases::getUserId, CurrentHolder.getCurrentUserId()));
         List<KbsWithRecentResourceVo> kbsWithRecentResourceVos = knowledgeBases.stream().map(kb -> {
             KbsWithRecentResourceVo kbsWithRecentResourceVo = new KbsWithRecentResourceVo();
             kbsWithRecentResourceVo.setId(kb.getId());
@@ -55,7 +54,7 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBasesMapper, 
     }
 
     private List<Resources> getRecentResources(Long kbId) {
-        return resourceService.list(new LambdaQueryWrapper<Resources>().eq(Resources::getKnowledgeBaseId, kbId).orderByDesc(Resources::getUpdatedAt).last("limit 3").eq(Resources::getIsDeleted, false));
+        return resourceService.list(new LambdaQueryWrapper<Resources>().eq(Resources::getKnowledgeBaseId, kbId).orderByDesc(Resources::getUpdatedAt).last("limit 3"));
     }
 
     @Override
@@ -67,7 +66,7 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBasesMapper, 
         knowledgeBase.setDescription(createRequest.getDescription());
         knowledgeBase.setIconIndex(createRequest.getIconIndex());
         knowledgeBase.setVisibility(createRequest.getVisibility());
-        knowledgeBase.setUserId(userContext.getUserId());
+        knowledgeBase.setUserId(CurrentHolder.getCurrentUserId());
         return save(knowledgeBase);
     }
 
@@ -80,7 +79,7 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBasesMapper, 
     @Override
     public List<ResourceTreeVo> getKnowledgeBaseWithDocuments(Long kbId) {
         log.info("获取知识库文档树: kbId={}", kbId);
-        List<Resources> resources = resourceService.list(new LambdaQueryWrapper<Resources>().eq(Resources::getKnowledgeBaseId, kbId).eq(Resources::getIsDeleted, false));
+        List<Resources> resources = resourceService.list(new LambdaQueryWrapper<Resources>().eq(Resources::getKnowledgeBaseId, kbId));
 /*         List<ResourceTreeVo> resourceTreeVos = resources.stream().filter(resource -> resource.getPreId() == null).map(resource -> {
             ResourceTreeVo resourceTreeVo = new ResourceTreeVo();
             resourceTreeVo.setId(resource.getId());
@@ -153,17 +152,24 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBasesMapper, 
 
 
     @Override
-    public KnowledgeBases updateKnowledgeBase(Long kbId, InsertKnowledgeBaseRequest updateRequest) {
-        // TODO: 实现更新知识库逻辑
+    public boolean updateKnowledgeBase(Long kbId, InsertKnowledgeBaseRequest updateRequest) {
+
         log.info("更新知识库信息: kbId={}", kbId);
-        throw new UnsupportedOperationException("待实现");
+        KnowledgeBases knowledgeBase = getById(kbId);
+        if(knowledgeBase == null){
+            return false;
+        }
+        knowledgeBase.setName(updateRequest.getName());
+        knowledgeBase.setDescription(updateRequest.getDescription());
+        knowledgeBase.setIconIndex(updateRequest.getIconIndex());
+        knowledgeBase.setVisibility(updateRequest.getVisibility());
+        return updateById(knowledgeBase);
     }
 
     @Override
-    public void deleteKnowledgeBase(Long kbId) {
-        // TODO: 实现删除知识库逻辑（逻辑删除）
+    public boolean deleteKnowledgeBase(Long kbId) {
         log.info("删除知识库: kbId={}", kbId);
-        throw new UnsupportedOperationException("待实现");
+        return removeById(kbId);
     }
 
     @Override

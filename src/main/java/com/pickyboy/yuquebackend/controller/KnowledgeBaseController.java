@@ -104,11 +104,14 @@ public class KnowledgeBaseController {
      * @return 更新后的知识库信息
      */
     @PutMapping("/knowledge-bases/{kbId}")
-    public Result<KnowledgeBases> updateKnowledgeBase(@PathVariable Long kbId,
+    public Result<Void> updateKnowledgeBase(@PathVariable Long kbId,
                                                        @RequestBody InsertKnowledgeBaseRequest updateRequest) {
         log.info("更新知识库信息: kbId={}", kbId);
-        KnowledgeBases knowledgeBase = knowledgeBaseService.updateKnowledgeBase(kbId, updateRequest);
-        return Result.success(knowledgeBase);
+        boolean success = knowledgeBaseService.updateKnowledgeBase(kbId, updateRequest);
+        if(!success){
+            return Result.error("更新知识库失败");
+        }
+        return Result.success();
     }
 
     /**
@@ -121,7 +124,10 @@ public class KnowledgeBaseController {
     @DeleteMapping("/knowledge-bases/{kbId}")
     public Result<Void> deleteKnowledgeBase(@PathVariable Long kbId) {
         log.info("删除知识库: kbId={}", kbId);
-        knowledgeBaseService.deleteKnowledgeBase(kbId);
+        boolean success = knowledgeBaseService.deleteKnowledgeBase(kbId);
+        if(!success){
+            return Result.error("删除知识库失败,知识库不存在");
+        }
         return Result.success();
     }
 

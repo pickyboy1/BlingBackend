@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.pickyboy.yuquebackend.common.constants.LoginConstants;
-import com.pickyboy.yuquebackend.common.context.UserContext;
+import com.pickyboy.yuquebackend.common.utils.CurrentHolder;
 import com.pickyboy.yuquebackend.common.utils.JwtUtil;
 import com.pickyboy.yuquebackend.common.utils.PasswordUtil;
 import com.pickyboy.yuquebackend.domain.dto.LoginRequest;
@@ -36,7 +36,6 @@ import lombok.extern.slf4j.Slf4j;
 public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements IUserService {
 
     private final JwtUtil jwtUtil;
-    private final UserContext userContext;
     private final IKnowledgeBaseService knowledgeBaseService;
 
     @Override
@@ -86,7 +85,7 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
     @Override
     public Users getCurrentUser() {
         log.info("获取当前登录用户信息");
-        Long userId = userContext.getUserId();
+        Long userId = CurrentHolder.getCurrentUserId();
         if(userId == null){
             return null;
         }
@@ -96,7 +95,7 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
     @Override
     public Users updateCurrentUser(UpdateUserRequest updateRequest) {
         log.info("更新当前用户信息");
-        Long userId = userContext.getUserId();
+        Long userId = CurrentHolder.getCurrentUserId();
         if(userId == null){
             return null;
         }
@@ -135,7 +134,7 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
         userPublicProfile.setLocation(user.getLocation());
         userPublicProfile.setFollowerCount(user.getFollowerCount());
         userPublicProfile.setFollowedCount(user.getFollowedCount());
-        
+
         userPublicProfile.setKnowledgeBases(knowledgeBaseService.getUserPublicKnowledgeBases(userId));
         return userPublicProfile;
     }
