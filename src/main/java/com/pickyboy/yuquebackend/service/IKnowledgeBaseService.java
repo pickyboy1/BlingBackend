@@ -2,11 +2,11 @@ package com.pickyboy.yuquebackend.service;
 
 import java.util.List;
 
-import com.pickyboy.yuquebackend.domain.dto.CreateKnowledgeBaseRequest;
-import com.pickyboy.yuquebackend.domain.dto.UpdateKnowledgeBaseRequest;
+import com.pickyboy.yuquebackend.domain.dto.InsertKnowledgeBaseRequest;
 import com.pickyboy.yuquebackend.domain.entity.KnowledgeBases;
 import com.pickyboy.yuquebackend.domain.entity.Resources;
-import com.pickyboy.yuquebackend.domain.vo.KnowledgeBaseWithDocumentsVO;
+import com.pickyboy.yuquebackend.domain.vo.KbsWithRecentResourceVo;
+import com.pickyboy.yuquebackend.domain.vo.ResourceTreeVo;
 import com.pickyboy.yuquebackend.domain.vo.TrashVO;
 
 /**
@@ -22,7 +22,7 @@ public interface IKnowledgeBaseService {
      *
      * @return 知识库列表
      */
-    List<KnowledgeBases> getUserKnowledgeBases();
+    List<KbsWithRecentResourceVo> getUserKnowledgeBases(boolean withRecentResources);
 
     /**
      * 创建新的知识库
@@ -30,15 +30,22 @@ public interface IKnowledgeBaseService {
      * @param createRequest 创建请求
      * @return 创建的知识库信息
      */
-    KnowledgeBases createKnowledgeBase(CreateKnowledgeBaseRequest createRequest);
+    boolean createKnowledgeBase(InsertKnowledgeBaseRequest createRequest);
 
+    /**
+     * 获取指定知识库的详细信息
+     *
+     * @param kbId 知识库ID
+     * @return 知识库详细信息
+     */
+    KnowledgeBases getKnowledgeBase(Long kbId);
     /**
      * 获取指定知识库的详细信息及其文档树
      *
      * @param kbId 知识库ID
      * @return 知识库详细信息及文档树
      */
-    KnowledgeBaseWithDocumentsVO getKnowledgeBaseWithDocuments(Long kbId);
+    List<ResourceTreeVo> getKnowledgeBaseWithDocuments(Long kbId);
 
     /**
      * 更新知识库信息
@@ -47,7 +54,7 @@ public interface IKnowledgeBaseService {
      * @param updateRequest 更新请求
      * @return 更新后的知识库信息
      */
-    KnowledgeBases updateKnowledgeBase(Long kbId, UpdateKnowledgeBaseRequest updateRequest);
+    KnowledgeBases updateKnowledgeBase(Long kbId, InsertKnowledgeBaseRequest updateRequest);
 
     /**
      * 删除知识库 (逻辑删除)

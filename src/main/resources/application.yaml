@@ -23,6 +23,8 @@ mybatis-plus:
     db-config:
       update-strategy: not_null
       id-type: assign_id
+      logic-delete-value: 1
+      logic-not-delete-value: 0
 logging:
   level:
     com.pickyboy: debug

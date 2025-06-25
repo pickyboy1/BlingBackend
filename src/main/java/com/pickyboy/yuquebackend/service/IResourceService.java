@@ -2,12 +2,15 @@ package com.pickyboy.yuquebackend.service;
 
 import java.util.List;
 
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.pickyboy.yuquebackend.domain.entity.Resources;
+
 /**
  * 文档/资源服务接口
  *
  * @author pickyboy
  */
-public interface IResourceService {
+public interface IResourceService extends IService<Resources> {
 
     /**
      * 创建新文档

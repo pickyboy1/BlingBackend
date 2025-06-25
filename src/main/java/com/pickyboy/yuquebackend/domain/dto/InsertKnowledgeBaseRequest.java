@@ -3,15 +3,15 @@ package com.pickyboy.yuquebackend.domain.dto;
 import lombok.Data;
 
 /**
- * 更新知识库请求DTO
+ * 创建知识库请求DTO
  *
  * @author pickyboy
  */
 @Data
-public class UpdateKnowledgeBaseRequest {
+public class InsertKnowledgeBaseRequest {
 
     /**
-     * 知识库名称
+     * 知识库名称 (必需)
      */
     private String name;
 

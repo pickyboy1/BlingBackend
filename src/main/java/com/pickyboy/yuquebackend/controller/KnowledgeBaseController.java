@@ -12,11 +12,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.pickyboy.yuquebackend.common.response.Result;
-import com.pickyboy.yuquebackend.domain.dto.CreateKnowledgeBaseRequest;
-import com.pickyboy.yuquebackend.domain.dto.UpdateKnowledgeBaseRequest;
+import com.pickyboy.yuquebackend.domain.dto.InsertKnowledgeBaseRequest;
 import com.pickyboy.yuquebackend.domain.entity.KnowledgeBases;
 import com.pickyboy.yuquebackend.domain.entity.Resources;
-import com.pickyboy.yuquebackend.domain.vo.KnowledgeBaseWithDocumentsVO;
+import com.pickyboy.yuquebackend.domain.vo.KbsWithRecentResourceVo;
+import com.pickyboy.yuquebackend.domain.vo.ResourceTreeVo;
 import com.pickyboy.yuquebackend.domain.vo.TrashVO;
 import com.pickyboy.yuquebackend.service.IKnowledgeBaseService;
 
@@ -44,9 +44,9 @@ public class KnowledgeBaseController {
      * @return 知识库列表
      */
     @GetMapping("/knowledge-bases")
-    public Result<List<KnowledgeBases>> getUserKnowledgeBases() {
+    public Result<List<KbsWithRecentResourceVo>> getUserKnowledgeBases(@PathVariable boolean withRecentResources) {
         log.info("获取当前用户的知识库列表");
-        List<KnowledgeBases> knowledgeBases = knowledgeBaseService.getUserKnowledgeBases();
+        List<KbsWithRecentResourceVo> knowledgeBases = knowledgeBaseService.getUserKnowledgeBases(withRecentResources);
         return Result.success(knowledgeBases);
     }
 
@@ -58,24 +58,41 @@ public class KnowledgeBaseController {
      * @return 创建的知识库信息
      */
     @PostMapping("/knowledge-bases")
-    public Result<KnowledgeBases> createKnowledgeBase(@RequestBody CreateKnowledgeBaseRequest createRequest) {
+    public Result<KnowledgeBases> createKnowledgeBase(@RequestBody InsertKnowledgeBaseRequest createRequest) {
         log.info("创建新的知识库: name={}", createRequest.getName());
-        KnowledgeBases knowledgeBase = knowledgeBaseService.createKnowledgeBase(createRequest);
+        boolean success = knowledgeBaseService.createKnowledgeBase(createRequest);
+        if(!success){
+            return Result.error("创建知识库失败");
+        }
+        return Result.success();
+    }
+
+    /**
+     * 获取指定知识库的详细信息
+     * GET /knowledge-bases/{kbId}
+     *
+     * @param kbId 知识库ID
+     * @return 知识库详细信息
+     */
+    @GetMapping("/knowledge-bases/{kbId}")
+    public Result<KnowledgeBases> getKnowledgeBase(@PathVariable Long kbId) {
+        log.info("获取知识库详细信息: kbId={}", kbId);
+        KnowledgeBases knowledgeBase = knowledgeBaseService.getKnowledgeBase(kbId);
         return Result.success(knowledgeBase);
     }
 
     /**
-     * 获取指定知识库的详细信息及其文档树
-     * GET /knowledge-bases/{kbId}
+     * 获取指定知识库下文档树
+     * GET /knowledge-bases/{kbId}/documents
      *
      * @param kbId 知识库ID
-     * @return 知识库详细信息及文档树
+     * @return 知识库下文档树
      */
-    @GetMapping("/knowledge-bases/{kbId}")
-    public Result<KnowledgeBaseWithDocumentsVO> getKnowledgeBase(@PathVariable Long kbId) {
-        log.info("获取知识库详细信息及文档树: kbId={}", kbId);
-        KnowledgeBaseWithDocumentsVO knowledgeBase = knowledgeBaseService.getKnowledgeBaseWithDocuments(kbId);
-        return Result.success(knowledgeBase);
+    @GetMapping("/knowledge-bases/{kbId}/documents")
+    public Result<List<ResourceTreeVo>> getKnowledgeBaseWithDocuments(@PathVariable Long kbId) {
+        log.info("获取知识库详细信息及其文档树: kbId={}", kbId);
+        List<ResourceTreeVo> knowledgeBaseWithDocuments = knowledgeBaseService.getKnowledgeBaseWithDocuments(kbId);
+        return Result.success(knowledgeBaseWithDocuments);
     }
 
     /**
@@ -88,7 +105,7 @@ public class KnowledgeBaseController {
      */
     @PutMapping("/knowledge-bases/{kbId}")
     public Result<KnowledgeBases> updateKnowledgeBase(@PathVariable Long kbId,
-                                                       @RequestBody UpdateKnowledgeBaseRequest updateRequest) {
+                                                       @RequestBody InsertKnowledgeBaseRequest updateRequest) {
         log.info("更新知识库信息: kbId={}", kbId);
         KnowledgeBases knowledgeBase = knowledgeBaseService.updateKnowledgeBase(kbId, updateRequest);
         return Result.success(knowledgeBase);
