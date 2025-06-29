@@ -60,7 +60,7 @@ public class Resources implements Serializable {
     private String type;
 
     /**
-     * 文档内容
+     * 文档内容url地址
      */
     private String content;
 

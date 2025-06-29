@@ -1,5 +1,7 @@
 server:
   port: 3000
+  servlet:
+    context-path: /api
 spring:
   application:
     name: YuQue
@@ -33,6 +35,14 @@ logging:
   pattern:
     dateformat: HH:mm:ss:SSS
 
+minio:
+  endpoint: http://192.168.31.128:9000  # 您的MinIO服务器地址和端口
+  access-key: minio           # 您的AccessKey
+  secret-key: minio123           # 您的SecretKey
+  bucket:                          # 定义不同上传类型的存储桶
+    avatar: "bling-avatar"              # 头像存储桶
+    resource: "bling-resources"          # 资源/文档存储桶
+    cover: "bling-covers"                # 封面图片存储桶
 
 # JWT??
 yuque:
@@ -49,6 +59,7 @@ pickyboy:
     excludePaths:
       - /api/auth/login
       - /api/auth/register
+      - /api/uploads/**
       - /api/test/public
       - /error
       - /favicon.ico
