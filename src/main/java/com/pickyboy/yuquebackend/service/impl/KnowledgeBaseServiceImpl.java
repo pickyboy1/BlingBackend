@@ -173,10 +173,23 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBasesMapper, 
     }
 
     @Override
+    public boolean updateKnowledgeBaseVisibility(Long kbId, Integer visibility) {
+        KnowledgeBases knowledgeBase = getById(kbId);
+        if(knowledgeBase == null){
+            return false;
+        }
+        knowledgeBase.setVisibility(visibility);
+        return updateById(knowledgeBase);
+    }
+
+    @Override
     public void restoreKnowledgeBase(Long kbId) {
-        // TODO: 实现恢复知识库逻辑
-        log.info("从回收站恢复知识库: kbId={}", kbId);
-        throw new UnsupportedOperationException("待实现");
+        KnowledgeBases knowledgeBase = getById(kbId);
+        if(knowledgeBase == null){
+            return;
+        }
+        knowledgeBase.setIsDeleted(false);
+        updateById(knowledgeBase);
     }
 
     @Override

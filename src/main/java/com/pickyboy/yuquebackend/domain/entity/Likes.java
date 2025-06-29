@@ -36,9 +36,9 @@ public class Likes implements Serializable {
     private Long userId;
 
     /**
-     * 推荐文章id (关联到resources.id)
+     * 推荐文章id (resources.id)
      */
-    private Long recommendId;
+    private Long resourceId;
 
     private LocalDateTime createdAt;
 

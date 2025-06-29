@@ -34,7 +34,7 @@ public class Comments implements Serializable {
     /**
      * 推荐文章id (关联到resources.id)
      */
-    private Long recommendId;
+    private Long resourceId;
 
     /**
      * 评论者id

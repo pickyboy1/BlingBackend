@@ -45,6 +45,11 @@ public class AiMessages implements Serializable {
     private String role;
 
     /**
+     * 使用的模型
+     */
+    private String model;
+
+    /**
      * 对话内容
      */
     private String content;

@@ -131,6 +131,19 @@ public class KnowledgeBaseController {
         return Result.success();
     }
 
+    /*
+    更改知识库的可见性
+     */
+    @PutMapping("/knowledge-bases/{kbId}/visibility")
+    public Result<Void> updateKnowledgeBaseVisibility(@PathVariable Long kbId, @RequestBody Integer visibility) {
+        log.info("更新知识库可见性: kbId={}, visibility={}", kbId, visibility);
+        boolean success = knowledgeBaseService.updateKnowledgeBaseVisibility(kbId, visibility);
+        if(!success){
+            return Result.error("更新知识库可见性失败");
+        }
+        return Result.success();
+    }
+
     /**
      * 从回收站恢复知识库
      * POST /knowledge-bases/{kbId}/restore
@@ -138,7 +151,7 @@ public class KnowledgeBaseController {
      * @param kbId 知识库ID
      * @return 操作结果
      */
-    @PostMapping("/knowledge-bases/{kbId}/restore")
+    @PostMapping("/recycle-bin/knowledge-bases/{kbId}")
     public Result<Void> restoreKnowledgeBase(@PathVariable Long kbId) {
         log.info("从回收站恢复知识库: kbId={}", kbId);
         knowledgeBaseService.restoreKnowledgeBase(kbId);
@@ -152,7 +165,7 @@ public class KnowledgeBaseController {
      * @param kbId 知识库ID
      * @return 最近编辑的文档列表
      */
-    @GetMapping("/knowledge-bases/{kbId}/recent-documents")
+    @GetMapping("/knowledge-bases/{kbId}/recent-resources")
     public Result<List<Resources>> getRecentDocuments(@PathVariable Long kbId) {
         log.info("获取知识库下最近编辑的文档: kbId={}", kbId);
         List<Resources> documents = knowledgeBaseService.getRecentDocuments(kbId);

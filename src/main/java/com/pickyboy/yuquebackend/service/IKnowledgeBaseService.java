@@ -96,4 +96,12 @@ public interface IKnowledgeBaseService {
      * @return 知识库摘要列表
      */
     List<KnowledgeBases> getUserPublicKnowledgeBases(Long userId);
+
+    /**
+     * 更新知识库可见性
+     *
+     * @param kbId 知识库ID
+     * @param visibility 可见性
+     */
+    boolean updateKnowledgeBaseVisibility(Long kbId, Integer visibility);
 }

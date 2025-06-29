@@ -44,10 +44,7 @@ public class AiConversations implements Serializable {
      */
     private String title;
 
-    /**
-     * 使用的模型
-     */
-    private String model;
+
 
     private LocalDateTime createdAt;
 
