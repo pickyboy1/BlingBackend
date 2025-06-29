@@ -12,12 +12,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.pickyboy.yuquebackend.common.response.Result;
-import com.pickyboy.yuquebackend.domain.dto.InsertKnowledgeBaseRequest;
+import com.pickyboy.yuquebackend.domain.dto.knowledgebase.InsertKnowledgeBaseRequest;
 import com.pickyboy.yuquebackend.domain.entity.KnowledgeBases;
 import com.pickyboy.yuquebackend.domain.entity.Resources;
-import com.pickyboy.yuquebackend.domain.vo.KbsWithRecentResourceVo;
-import com.pickyboy.yuquebackend.domain.vo.ResourceTreeVo;
-import com.pickyboy.yuquebackend.domain.vo.TrashVO;
+import com.pickyboy.yuquebackend.domain.vo.knowledgebase.KbsWithRecentResourceVo;
+import com.pickyboy.yuquebackend.domain.vo.resource.ResourceTreeVo;
+import com.pickyboy.yuquebackend.domain.vo.knowledgebase.TrashVO;
 import com.pickyboy.yuquebackend.service.IKnowledgeBaseService;
 
 import lombok.RequiredArgsConstructor;
@@ -160,15 +160,15 @@ public class KnowledgeBaseController {
 
     /**
      * 获取知识库下最近编辑的文档
-     * GET /knowledge-bases/{kbId}/recent-documents
+     * GET /knowledge-bases/{kbId}/recent-resources
      *
      * @param kbId 知识库ID
      * @return 最近编辑的文档列表
      */
     @GetMapping("/knowledge-bases/{kbId}/recent-resources")
-    public Result<List<Resources>> getRecentDocuments(@PathVariable Long kbId) {
+    public Result<List<Resources>> getRecentResources(@PathVariable Long kbId) {
         log.info("获取知识库下最近编辑的文档: kbId={}", kbId);
-        List<Resources> documents = knowledgeBaseService.getRecentDocuments(kbId);
+        List<Resources> documents = knowledgeBaseService.getRecentResources(kbId);
         return Result.success(documents);
     }
 

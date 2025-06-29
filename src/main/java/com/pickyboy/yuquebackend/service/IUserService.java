@@ -2,13 +2,13 @@ package com.pickyboy.yuquebackend.service;
 
 import java.util.List;
 
-import com.pickyboy.yuquebackend.domain.dto.LoginRequest;
-import com.pickyboy.yuquebackend.domain.dto.RegisterRequest;
-import com.pickyboy.yuquebackend.domain.dto.UpdateUserRequest;
+import com.pickyboy.yuquebackend.domain.dto.user.LoginRequest;
+import com.pickyboy.yuquebackend.domain.dto.user.RegisterRequest;
+import com.pickyboy.yuquebackend.domain.dto.user.UpdateUserRequest;
 import com.pickyboy.yuquebackend.domain.entity.KnowledgeBases;
 import com.pickyboy.yuquebackend.domain.entity.Users;
-import com.pickyboy.yuquebackend.domain.vo.AuthResponse;
-import com.pickyboy.yuquebackend.domain.vo.UserPublicProfile;
+import com.pickyboy.yuquebackend.domain.vo.user.AuthResponse;
+import com.pickyboy.yuquebackend.domain.vo.user.UserPublicProfile;
 
 /**
  * 用户服务接口

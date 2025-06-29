@@ -3,7 +3,15 @@ package com.pickyboy.yuquebackend.service;
 import java.util.List;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.pickyboy.yuquebackend.domain.dto.resource.CopyResourceRequest;
+import com.pickyboy.yuquebackend.domain.dto.resource.CreateResourceRequest;
+import com.pickyboy.yuquebackend.domain.dto.resource.MoveResourceRequest;
+import com.pickyboy.yuquebackend.domain.dto.resource.RestoreResourceRequest;
+import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceContentRequest;
+import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceInfoRequest;
 import com.pickyboy.yuquebackend.domain.entity.Resources;
+import com.pickyboy.yuquebackend.domain.vo.resource.PublicResourceVO;
+import com.pickyboy.yuquebackend.domain.vo.resource.ShareUrlVO;
 
 /**
  * 文档/资源服务接口
@@ -18,7 +26,7 @@ public interface IResourceService extends IService<Resources> {
      * @param createRequest 创建请求
      * @return 文档信息
      */
-    Object createDocument(Object createRequest);
+    Resources createDocument(CreateResourceRequest createRequest);
 
     /**
      * 获取文档内容
@@ -26,7 +34,7 @@ public interface IResourceService extends IService<Resources> {
      * @param documentId 文档ID
      * @return 文档内容
      */
-    Object getDocument(Long documentId);
+    Resources getDocument(Long documentId);
 
     /**
      * 更新文档内容
@@ -35,7 +43,7 @@ public interface IResourceService extends IService<Resources> {
      * @param updateRequest 更新请求
      * @return 更新后的文档
      */
-    Object updateDocument(Long documentId, Object updateRequest);
+    Resources updateDocument(Long documentId, UpdateResourceContentRequest updateRequest);
 
     /**
      * 删除文档 (逻辑删除)
@@ -49,16 +57,16 @@ public interface IResourceService extends IService<Resources> {
      *
      * @param documentId 文档ID
      * @param infoRequest 信息更新请求
-     * @return 更新后的文档信息
      */
-    Object updateDocumentInfo(Long documentId, Object infoRequest);
+    void updateDocumentInfo(Long documentId, UpdateResourceInfoRequest infoRequest);
 
     /**
      * 从回收站恢复文档
      *
      * @param documentId 文档ID
+     * @param restoreRequest 恢复请求
      */
-    void restoreDocument(Long documentId);
+    void restoreDocument(Long documentId, RestoreResourceRequest restoreRequest);
 
     /**
      * 移动文档或目录
@@ -66,16 +74,15 @@ public interface IResourceService extends IService<Resources> {
      * @param documentId 文档ID
      * @param moveRequest 移动请求
      */
-    void moveDocument(Long documentId, Object moveRequest);
+    void moveDocument(Long documentId, MoveResourceRequest moveRequest);
 
     /**
      * 复制文档或目录 (递归)
      *
      * @param documentId 文档ID
      * @param copyRequest 复制请求
-     * @return 复制后的文档
      */
-    Object copyDocument(Long documentId, Object copyRequest);
+    void copyDocument(Long documentId, CopyResourceRequest copyRequest);
 
     /**
      * 生成并获取文档分享链接
@@ -83,7 +90,7 @@ public interface IResourceService extends IService<Resources> {
      * @param documentId 文档ID
      * @return 分享链接信息
      */
-    Object shareDocument(Long documentId);
+    ShareUrlVO shareDocument(Long documentId);
 
     /**
      * 查看分享的文档
@@ -91,7 +98,7 @@ public interface IResourceService extends IService<Resources> {
      * @param shareId 分享ID
      * @return 公开文档内容
      */
-    Object getSharedDocument(String shareId);
+    PublicResourceVO getSharedDocument(String shareId);
 
     /**
      * 点赞文章

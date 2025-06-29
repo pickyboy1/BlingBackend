@@ -10,12 +10,12 @@ import org.springframework.stereotype.Service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.pickyboy.yuquebackend.common.utils.CurrentHolder;
-import com.pickyboy.yuquebackend.domain.dto.InsertKnowledgeBaseRequest;
+import com.pickyboy.yuquebackend.domain.dto.knowledgebase.InsertKnowledgeBaseRequest;
 import com.pickyboy.yuquebackend.domain.entity.KnowledgeBases;
 import com.pickyboy.yuquebackend.domain.entity.Resources;
-import com.pickyboy.yuquebackend.domain.vo.KbsWithRecentResourceVo;
-import com.pickyboy.yuquebackend.domain.vo.ResourceTreeVo;
-import com.pickyboy.yuquebackend.domain.vo.TrashVO;
+import com.pickyboy.yuquebackend.domain.vo.knowledgebase.KbsWithRecentResourceVo;
+import com.pickyboy.yuquebackend.domain.vo.knowledgebase.TrashVO;
+import com.pickyboy.yuquebackend.domain.vo.resource.ResourceTreeVo;
 import com.pickyboy.yuquebackend.mapper.KnowledgeBasesMapper;
 import com.pickyboy.yuquebackend.service.IKnowledgeBaseService;
 import com.pickyboy.yuquebackend.service.IResourceService;
@@ -53,7 +53,8 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBasesMapper, 
         return kbsWithRecentResourceVos;
     }
 
-    private List<Resources> getRecentResources(Long kbId) {
+    @Override
+    public List<Resources> getRecentResources(Long kbId) {
         return resourceService.list(new LambdaQueryWrapper<Resources>().eq(Resources::getKnowledgeBaseId, kbId).orderByDesc(Resources::getUpdatedAt).last("limit 3"));
     }
 
@@ -192,18 +193,17 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBasesMapper, 
         updateById(knowledgeBase);
     }
 
-    @Override
-    public List<Resources> getRecentDocuments(Long kbId) {
-        // TODO: 实现获取最近编辑文档逻辑
-        log.info("获取知识库下最近编辑的文档: kbId={}", kbId);
-        throw new UnsupportedOperationException("待实现");
-    }
+
 
     @Override
     public TrashVO getTrashContent() {
-        // TODO: 实现获取回收站内容逻辑
         log.info("获取回收站内容列表");
-        throw new UnsupportedOperationException("待实现");
+        List<KnowledgeBases> knowledgeBases = list(new LambdaQueryWrapper<KnowledgeBases>().eq(KnowledgeBases::getUserId, CurrentHolder.getCurrentUserId()).eq(KnowledgeBases::getIsDeleted, true));
+        List<Resources> resources = resourceService.list(new LambdaQueryWrapper<Resources>().eq(Resources::getUserId, CurrentHolder.getCurrentUserId()).eq(Resources::getIsDeleted, true));
+        TrashVO trashVO = new TrashVO();
+        trashVO.setKnowledgeBases(knowledgeBases);
+        trashVO.setResources(resources);
+        return trashVO;
     }
 
     @Override

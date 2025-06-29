@@ -5,7 +5,15 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.pickyboy.yuquebackend.domain.dto.resource.CopyResourceRequest;
+import com.pickyboy.yuquebackend.domain.dto.resource.CreateResourceRequest;
+import com.pickyboy.yuquebackend.domain.dto.resource.MoveResourceRequest;
+import com.pickyboy.yuquebackend.domain.dto.resource.RestoreResourceRequest;
+import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceContentRequest;
+import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceInfoRequest;
 import com.pickyboy.yuquebackend.domain.entity.Resources;
+import com.pickyboy.yuquebackend.domain.vo.resource.PublicResourceVO;
+import com.pickyboy.yuquebackend.domain.vo.resource.ShareUrlVO;
 import com.pickyboy.yuquebackend.mapper.ResourcesMapper;
 import com.pickyboy.yuquebackend.service.IResourceService;
 
@@ -23,23 +31,23 @@ import lombok.extern.slf4j.Slf4j;
 public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources> implements IResourceService {
 
     @Override
-    public Object createDocument(Object createRequest) {
+    public Resources createDocument(CreateResourceRequest createRequest) {
         // TODO: 实现创建文档逻辑
-        log.info("创建新文档");
+        log.info("创建新文档: request={}", createRequest);
         throw new UnsupportedOperationException("待实现");
     }
 
     @Override
-    public Object getDocument(Long documentId) {
+    public Resources getDocument(Long documentId) {
         // TODO: 实现获取文档内容逻辑
         log.info("获取文档内容: documentId={}", documentId);
         throw new UnsupportedOperationException("待实现");
     }
 
     @Override
-    public Object updateDocument(Long documentId, Object updateRequest) {
+    public Resources updateDocument(Long documentId, UpdateResourceContentRequest updateRequest) {
         // TODO: 实现更新文档内容逻辑
-        log.info("更新文档内容: documentId={}", documentId);
+        log.info("更新文档内容: documentId={}, request={}", documentId, updateRequest);
         throw new UnsupportedOperationException("待实现");
     }
 
@@ -51,42 +59,42 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
     }
 
     @Override
-    public Object updateDocumentInfo(Long documentId, Object infoRequest) {
+    public void updateDocumentInfo(Long documentId, UpdateResourceInfoRequest infoRequest) {
         // TODO: 实现更新文档信息逻辑
-        log.info("更新文档信息: documentId={}", documentId);
+        log.info("更新文档信息: documentId={}, request={}", documentId, infoRequest);
         throw new UnsupportedOperationException("待实现");
     }
 
     @Override
-    public void restoreDocument(Long documentId) {
+    public void restoreDocument(Long documentId, RestoreResourceRequest restoreRequest) {
         // TODO: 实现恢复文档逻辑
-        log.info("恢复文档: documentId={}", documentId);
+        log.info("恢复文档: documentId={}, request={}", documentId, restoreRequest);
         throw new UnsupportedOperationException("待实现");
     }
 
     @Override
-    public void moveDocument(Long documentId, Object moveRequest) {
+    public void moveDocument(Long documentId, MoveResourceRequest moveRequest) {
         // TODO: 实现移动文档逻辑
-        log.info("移动文档: documentId={}", documentId);
+        log.info("移动文档: documentId={}, request={}", documentId, moveRequest);
         throw new UnsupportedOperationException("待实现");
     }
 
     @Override
-    public Object copyDocument(Long documentId, Object copyRequest) {
+    public void copyDocument(Long documentId, CopyResourceRequest copyRequest) {
         // TODO: 实现复制文档逻辑
-        log.info("复制文档: documentId={}", documentId);
+        log.info("复制文档: documentId={}, request={}", documentId, copyRequest);
         throw new UnsupportedOperationException("待实现");
     }
 
     @Override
-    public Object shareDocument(Long documentId) {
+    public ShareUrlVO shareDocument(Long documentId) {
         // TODO: 实现生成分享链接逻辑
         log.info("生成文档分享链接: documentId={}", documentId);
         throw new UnsupportedOperationException("待实现");
     }
 
     @Override
-    public Object getSharedDocument(String shareId) {
+    public PublicResourceVO getSharedDocument(String shareId) {
         // TODO: 实现查看分享文档逻辑
         log.info("查看分享文档: shareId={}", shareId);
         throw new UnsupportedOperationException("待实现");

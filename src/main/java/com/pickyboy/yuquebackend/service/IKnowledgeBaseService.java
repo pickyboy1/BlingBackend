@@ -2,12 +2,12 @@ package com.pickyboy.yuquebackend.service;
 
 import java.util.List;
 
-import com.pickyboy.yuquebackend.domain.dto.InsertKnowledgeBaseRequest;
+import com.pickyboy.yuquebackend.domain.dto.knowledgebase.InsertKnowledgeBaseRequest;
 import com.pickyboy.yuquebackend.domain.entity.KnowledgeBases;
 import com.pickyboy.yuquebackend.domain.entity.Resources;
-import com.pickyboy.yuquebackend.domain.vo.KbsWithRecentResourceVo;
-import com.pickyboy.yuquebackend.domain.vo.ResourceTreeVo;
-import com.pickyboy.yuquebackend.domain.vo.TrashVO;
+import com.pickyboy.yuquebackend.domain.vo.knowledgebase.KbsWithRecentResourceVo;
+import com.pickyboy.yuquebackend.domain.vo.knowledgebase.TrashVO;
+import com.pickyboy.yuquebackend.domain.vo.resource.ResourceTreeVo;
 
 /**
  * 知识库服务接口
@@ -78,7 +78,7 @@ public interface IKnowledgeBaseService {
      * @param kbId 知识库ID
      * @return 最近编辑的文档列表
      */
-    List<Resources> getRecentDocuments(Long kbId);
+    List<Resources> getRecentResources(Long kbId);
 
     /**
      * 获取回收站内容列表
