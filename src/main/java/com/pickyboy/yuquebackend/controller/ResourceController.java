@@ -1,7 +1,18 @@
 package com.pickyboy.yuquebackend.controller;
 
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.pickyboy.yuquebackend.common.response.Result;
 import com.pickyboy.yuquebackend.domain.dto.resource.CopyResourceRequest;
@@ -15,11 +26,9 @@ import com.pickyboy.yuquebackend.domain.vo.resource.PublicResourceVO;
 import com.pickyboy.yuquebackend.domain.vo.resource.ShareUrlVO;
 import com.pickyboy.yuquebackend.service.IResourceService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import jakarta.validation.Valid;
-import java.util.List;
 
 /**
  * 文档资源管理控制器
@@ -35,150 +44,237 @@ public class ResourceController {
     private final IResourceService resourceService;
 
     /**
-     * 创建新文档
+     * 在知识库中新建资源
      */
-    @PostMapping("/documents")
-    public Result<Resources> createDocument(@Valid @RequestBody CreateResourceRequest request) {
-        log.info("创建新文档: {}", request);
-        Resources resource = resourceService.createDocument(request);
+    @PostMapping("/knowledge-bases/{kbId}/resources")
+    public Result<Resources> createResource(@PathVariable Long kbId,
+                                           @Valid @RequestBody CreateResourceRequest request) {
+        log.info("在知识库中新建资源: kbId={}, request={}", kbId, request);
+        Resources resource = resourceService.createResource(kbId, request);
         return Result.success(resource);
     }
 
     /**
-     * 获取文档内容
+     * 查看单个资源的完整信息
      */
-    @GetMapping("/documents/{documentId}")
-    public Result<Resources> getDocument(@PathVariable Long documentId) {
-        log.info("获取文档内容: documentId={}", documentId);
-        Resources resource = resourceService.getDocument(documentId);
+    @GetMapping("/resources/{resId}")
+    public Result<Resources> getResourceById(@PathVariable Long resId) {
+        log.info("查看单个资源: resId={}", resId);
+        Resources resource = resourceService.getResourceById(resId);
         return Result.success(resource);
     }
 
     /**
-     * 更新文档内容
+     * 更新资源内容或标题
      */
-    @PutMapping("/documents/{documentId}")
-    public Result<Resources> updateDocument(@PathVariable Long documentId,
-                                           @Valid @RequestBody UpdateResourceContentRequest request) {
-        log.info("更新文档内容: documentId={}, request={}", documentId, request);
-        Resources resource = resourceService.updateDocument(documentId, request);
-        return Result.success(resource);
-    }
-
-    /**
-     * 删除文档 (逻辑删除)
-     */
-    @DeleteMapping("/documents/{documentId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public Result<Void> deleteDocument(@PathVariable Long documentId) {
-        log.info("删除文档: documentId={}", documentId);
-        resourceService.deleteDocument(documentId);
+    @PutMapping("/resources/{resId}")
+    public Result<Void> updateResource(@PathVariable Long resId,
+                                      @Valid @RequestBody UpdateResourceContentRequest request) {
+        log.info("更新资源内容或标题: resId={}, request={}", resId, request);
+        resourceService.updateResource(resId, request);
         return Result.success();
     }
 
     /**
-     * 更新文档信息 (如重命名, 修改可见性)
+     * 删除资源 (逻辑删除)
      */
-    @PatchMapping("/documents/{documentId}/info")
-    public Result<Void> updateDocumentInfo(@PathVariable Long documentId,
-                                          @Valid @RequestBody UpdateResourceInfoRequest request) {
-        log.info("更新文档信息: documentId={}, request={}", documentId, request);
-        resourceService.updateDocumentInfo(documentId, request);
+    @DeleteMapping("/resources/{resId}")
+    public Result<Void> deleteResource(@PathVariable Long resId) {
+        log.info("删除资源: resId={}", resId);
+        resourceService.deleteResource(resId);
         return Result.success();
     }
 
     /**
-     * 从回收站恢复文档
+     * 重命名资源
      */
-    @PostMapping("/documents/{documentId}/restore")
-    public Result<Void> restoreDocument(@PathVariable Long documentId,
-                                       @Valid @RequestBody RestoreResourceRequest request) {
-        log.info("从回收站恢复文档: documentId={}, request={}", documentId, request);
-        resourceService.restoreDocument(documentId, request);
+    @PatchMapping("/resources/{resId}/rename")
+    public Result<Void> renameResource(@PathVariable Long resId,
+                                      @Valid @RequestBody UpdateResourceInfoRequest request) {
+        log.info("重命名资源: resId={}, request={}", resId, request);
+        resourceService.renameResource(resId, request);
         return Result.success();
     }
 
     /**
-     * 移动文档或目录
+     * 更新资源可见性
      */
-    @PostMapping("/documents/{documentId}/move")
-    public Result<Void> moveDocument(@PathVariable Long documentId,
+    @PatchMapping("/resources/{resId}/visibility")
+    public Result<Void> updateResourceVisibility(@PathVariable Long resId,
+                                                 @RequestBody Object visibilityRequest) {
+        log.info("更新资源可见性: resId={}, request={}", resId, visibilityRequest);
+        resourceService.updateResourceVisibility(resId, visibilityRequest);
+        return Result.success();
+    }
+
+    /**
+     * 更新资源上架/下架状态
+     */
+    @PatchMapping("/resources/{resId}/status")
+    public Result<Void> updateResourceStatus(@PathVariable Long resId,
+                                            @RequestBody Object statusRequest) {
+        log.info("更新资源状态: resId={}, request={}", resId, statusRequest);
+        resourceService.updateResourceStatus(resId, statusRequest);
+        return Result.success();
+    }
+
+    /**
+     * 恢复资源
+     */
+    @PostMapping("/recycle-bin/resources/{resId}")
+    public Result<Void> restoreResource(@PathVariable Long resId) {
+        log.info("从回收站恢复资源: resId={}", resId);
+        resourceService.restoreResource(resId);
+        return Result.success();
+    }
+
+    /**
+     * 彻底删除资源
+     */
+    @DeleteMapping("/recycle-bin/resources/{resId}")
+    public Result<Void> permanentlyDeleteResource(@PathVariable Long resId) {
+        log.info("彻底删除资源: resId={}", resId);
+        resourceService.permanentlyDeleteResource(resId);
+        return Result.success();
+    }
+
+    /**
+     * 移动资源或目录
+     */
+    @PostMapping("/resources/{resId}/move")
+    public Result<Void> moveResource(@PathVariable Long resId,
                                     @Valid @RequestBody MoveResourceRequest request) {
-        log.info("移动文档: documentId={}, request={}", documentId, request);
-        resourceService.moveDocument(documentId, request);
+        log.info("移动资源: resId={}, request={}", resId, request);
+        resourceService.moveResource(resId, request);
         return Result.success();
     }
 
     /**
-     * 复制文档或目录 (递归)
+     * 复制资源
      */
-    @PostMapping("/documents/{documentId}/copy")
-    @ResponseStatus(HttpStatus.CREATED)
-    public Result<Void> copyDocument(@PathVariable Long documentId,
+    @PostMapping("/resources/{resId}/copy")
+    public Result<Void> copyResource(@PathVariable Long resId,
                                     @Valid @RequestBody CopyResourceRequest request) {
-        log.info("复制文档: documentId={}, request={}", documentId, request);
-        resourceService.copyDocument(documentId, request);
+        log.info("复制资源: resId={}, request={}", resId, request);
+        resourceService.copyResource(resId, request);
         return Result.success();
     }
 
     /**
-     * 生成并获取文档分享链接
+     * 复制目录(及目录下所有子资源)
      */
-    @PostMapping("/documents/{documentId}/share")
-    public Result<ShareUrlVO> shareDocument(@PathVariable Long documentId) {
-        log.info("生成文档分享链接: documentId={}", documentId);
-        ShareUrlVO shareUrl = resourceService.shareDocument(documentId);
+    @PostMapping("/resources/{resId}/copy-tree")
+    public Result<Void> copyResourceTree(@PathVariable Long resId,
+                                        @Valid @RequestBody CopyResourceRequest request) {
+        log.info("复制目录树: resId={}, request={}", resId, request);
+        resourceService.copyResourceTree(resId, request);
+        return Result.success();
+    }
+
+    /**
+     * 生成资源分享链接
+     */
+    @PostMapping("/resources/{resId}/share")
+    public Result<ShareUrlVO> generateResourceShareLink(@PathVariable Long resId) {
+        log.info("生成资源分享链接: resId={}", resId);
+        ShareUrlVO shareUrl = resourceService.generateResourceShareLink(resId);
         return Result.success(shareUrl);
     }
 
     /**
-     * 查看分享的文档
+     * 访问分享链接查看资源
      */
-    @GetMapping("/shared/{shareId}")
-    public Result<PublicResourceVO> getSharedDocument(@PathVariable String shareId) {
-        log.info("查看分享文档: shareId={}", shareId);
-        PublicResourceVO resource = resourceService.getSharedDocument(shareId);
+    @GetMapping("/share/{kbShareId}/{resShareId}")
+    public Result<PublicResourceVO> accessSharedResource(@PathVariable String kbShareId,
+                                                        @PathVariable String resShareId) {
+        log.info("访问分享资源: kbShareId={}, resShareId={}", kbShareId, resShareId);
+        PublicResourceVO resource = resourceService.accessSharedResource(kbShareId, resShareId);
         return Result.success(resource);
     }
 
     /**
      * 点赞文章
      */
-    @PostMapping("/resources/{resourceId}/like")
-    public Result<Void> likeResource(@PathVariable Long resourceId) {
-        log.info("点赞文章: resourceId={}", resourceId);
-        resourceService.likeResource(resourceId);
+    @PostMapping("/articles/{articleId}/like")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public Result<Void> likeArticle(@PathVariable Long articleId) {
+        log.info("点赞文章: articleId={}", articleId);
+        resourceService.likeArticle(articleId);
         return Result.success();
     }
 
     /**
      * 取消点赞文章
      */
-    @DeleteMapping("/resources/{resourceId}/like")
-    public Result<Void> unlikeResource(@PathVariable Long resourceId) {
-        log.info("取消点赞文章: resourceId={}", resourceId);
-        resourceService.unlikeResource(resourceId);
+    @DeleteMapping("/articles/{articleId}/like")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public Result<Void> unlikeArticle(@PathVariable Long articleId) {
+        log.info("取消点赞文章: articleId={}", articleId);
+        resourceService.unlikeArticle(articleId);
         return Result.success();
     }
 
     /**
      * 获取文章的评论列表
      */
-    @GetMapping("/resources/{resourceId}/comments")
-    public Result<List<?>> getResourceComments(@PathVariable Long resourceId) {
-        log.info("获取文章评论列表: resourceId={}", resourceId);
-        List<?> comments = resourceService.getResourceComments(resourceId);
+    @GetMapping("/articles/{articleId}/comments")
+    public Result<List<?>> listArticleComments(@PathVariable Long articleId) {
+        log.info("获取文章评论列表: articleId={}", articleId);
+        List<?> comments = resourceService.listArticleComments(articleId);
         return Result.success(comments);
     }
 
     /**
-     * 发表顶级评论
+     * 发表评论
      */
-    @PostMapping("/resources/{resourceId}/comments")
-    public Result<Object> createComment(@PathVariable Long resourceId,
+    @PostMapping("/articles/{articleId}/comments")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Result<Object> createComment(@PathVariable Long articleId,
                                        @RequestBody Object commentRequest) {
-        log.info("发表评论: resourceId={}, request={}", resourceId, commentRequest);
-        Object comment = resourceService.createComment(resourceId, commentRequest);
+        log.info("发表评论: articleId={}, request={}", articleId, commentRequest);
+        Object comment = resourceService.createComment(articleId, commentRequest);
         return Result.success(comment);
+    }
+
+    /**
+     * 删除评论
+     */
+    @DeleteMapping("/comments/{commentId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public Result<Void> deleteComment(@PathVariable Long commentId) {
+        log.info("删除评论: commentId={}", commentId);
+        resourceService.deleteComment(commentId);
+        return Result.success();
+    }
+
+    /**
+     * 获取推荐文章列表
+     */
+    @GetMapping("/explore/articles")
+    public Result<List<PublicResourceVO>> listExploreArticles() {
+        log.info("获取推荐文章列表");
+        List<PublicResourceVO> articles = resourceService.listExploreArticles();
+        return Result.success(articles);
+    }
+
+    /**
+     * 提交投稿（申请推荐）
+     */
+    @PostMapping("/submissions")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public Result<Void> createSubmission(@RequestBody Object submissionRequest) {
+        log.info("提交投稿: request={}", submissionRequest);
+        resourceService.createSubmission(submissionRequest);
+        return Result.success();
+    }
+
+    /**
+     * 获取知识库下的资源目录树
+     */
+    @GetMapping("/knowledge-bases/{kbId}/resources/tree")
+    public Result<List<?>> getResourceTree(@PathVariable Long kbId) {
+        log.info("获取知识库资源目录树: kbId={}", kbId);
+        List<?> tree = resourceService.getResourceTree(kbId);
+        return Result.success(tree);
     }
 }

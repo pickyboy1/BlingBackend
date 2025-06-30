@@ -22,6 +22,7 @@ import com.pickyboy.yuquebackend.domain.vo.user.UserPublicProfile;
 import com.pickyboy.yuquebackend.service.IKnowledgeBaseService;
 import com.pickyboy.yuquebackend.service.IUserService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -48,12 +49,9 @@ public class UserController {
      * @return 注册响应
      */
     @PostMapping("/auth/register")
-    public Result<Void> register(@RequestBody RegisterRequest registerRequest) {
+    public Result<Void> register(@Valid @RequestBody RegisterRequest registerRequest) {
         log.info("用户注册请求: registerType={}", registerRequest.getRegisterType());
-        boolean success = userService.register(registerRequest);
-        if(!success){
-            return Result.error("用户注册失败");
-        }
+        userService.register(registerRequest);
         return Result.success();
     }
 
@@ -65,7 +63,7 @@ public class UserController {
      * @return 登录响应
      */
     @PostMapping("/auth/login")
-    public Result<AuthResponse> login(@RequestBody LoginRequest loginRequest) {
+    public Result<AuthResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
         log.info("用户登录请求: loginType={}", loginRequest.getLoginType());
         AuthResponse response = userService.login(loginRequest);
         return Result.success(response);
@@ -73,7 +71,7 @@ public class UserController {
 
     /**
      * 获取当前登录用户信息
-     * GET /me
+     * GET /user/profile
      *
      * @return 当前用户信息
      */
@@ -86,13 +84,13 @@ public class UserController {
 
     /**
      * 更新当前登录用户信息
-     * PUT /me
+     * PUT /user/profile
      *
      * @param updateRequest 更新请求
      * @return 更新后的用户信息
      */
     @PutMapping("/user/profile")
-    public Result<Users> updateCurrentUser(@RequestBody UpdateUserRequest updateRequest) {
+    public Result<Users> updateCurrentUser(@Valid @RequestBody UpdateUserRequest updateRequest) {
         log.info("更新当前用户信息");
         Users user = userService.updateCurrentUser(updateRequest);
         return Result.success(user);
@@ -100,7 +98,7 @@ public class UserController {
 
     /**
      * 获取指定用户的公开知识库列表
-     * GET /users/{userId}/knowledge-bases
+     * GET /user/{userId}/public-kbs
      *
      * @param userId 用户ID
      * @return 用户公开知识库列表
@@ -127,7 +125,6 @@ public class UserController {
     }
 
 // todo:
-
     /**
      * 关注用户
      * POST /users/{userId}/follow

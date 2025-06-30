@@ -8,7 +8,6 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.pickyboy.yuquebackend.domain.dto.resource.CopyResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.CreateResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.MoveResourceRequest;
-import com.pickyboy.yuquebackend.domain.dto.resource.RestoreResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceContentRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceInfoRequest;
 import com.pickyboy.yuquebackend.domain.entity.Resources;
@@ -31,100 +30,134 @@ import lombok.extern.slf4j.Slf4j;
 public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources> implements IResourceService {
 
     @Override
-    public Resources createDocument(CreateResourceRequest createRequest) {
-        // TODO: 实现创建文档逻辑
-        log.info("创建新文档: request={}", createRequest);
-        throw new UnsupportedOperationException("待实现");
+    public Resources createResource(Long kbId, CreateResourceRequest createRequest) {
+        log.info("在知识库中新建资源: kbId={}, request={}", kbId, createRequest);
+        throw new UnsupportedOperationException("此方法尚未实现");
     }
 
     @Override
-    public Resources getDocument(Long documentId) {
-        // TODO: 实现获取文档内容逻辑
-        log.info("获取文档内容: documentId={}", documentId);
-        throw new UnsupportedOperationException("待实现");
+    public Resources getResourceById(Long resId) {
+        log.info("查看单个资源: resId={}", resId);
+        throw new UnsupportedOperationException("此方法尚未实现");
     }
 
     @Override
-    public Resources updateDocument(Long documentId, UpdateResourceContentRequest updateRequest) {
-        // TODO: 实现更新文档内容逻辑
-        log.info("更新文档内容: documentId={}, request={}", documentId, updateRequest);
-        throw new UnsupportedOperationException("待实现");
+    public void updateResource(Long resId, UpdateResourceContentRequest updateRequest) {
+        log.info("更新资源内容或标题: resId={}, request={}", resId, updateRequest);
+        throw new UnsupportedOperationException("此方法尚未实现");
     }
 
     @Override
-    public void deleteDocument(Long documentId) {
-        // TODO: 实现删除文档逻辑
-        log.info("删除文档: documentId={}", documentId);
-        throw new UnsupportedOperationException("待实现");
+    public void deleteResource(Long resId) {
+        log.info("删除资源: resId={}", resId);
+        throw new UnsupportedOperationException("此方法尚未实现");
     }
 
     @Override
-    public void updateDocumentInfo(Long documentId, UpdateResourceInfoRequest infoRequest) {
-        // TODO: 实现更新文档信息逻辑
-        log.info("更新文档信息: documentId={}, request={}", documentId, infoRequest);
-        throw new UnsupportedOperationException("待实现");
+    public void renameResource(Long resId, UpdateResourceInfoRequest infoRequest) {
+        log.info("重命名资源: resId={}, request={}", resId, infoRequest);
+        throw new UnsupportedOperationException("此方法尚未实现");
     }
 
     @Override
-    public void restoreDocument(Long documentId, RestoreResourceRequest restoreRequest) {
-        // TODO: 实现恢复文档逻辑
-        log.info("恢复文档: documentId={}, request={}", documentId, restoreRequest);
-        throw new UnsupportedOperationException("待实现");
+    public void updateResourceVisibility(Long resId, Object visibilityRequest) {
+        log.info("更新资源可见性: resId={}, request={}", resId, visibilityRequest);
+        throw new UnsupportedOperationException("此方法尚未实现");
     }
 
     @Override
-    public void moveDocument(Long documentId, MoveResourceRequest moveRequest) {
-        // TODO: 实现移动文档逻辑
-        log.info("移动文档: documentId={}, request={}", documentId, moveRequest);
-        throw new UnsupportedOperationException("待实现");
+    public void updateResourceStatus(Long resId, Object statusRequest) {
+        log.info("更新资源状态: resId={}, request={}", resId, statusRequest);
+        throw new UnsupportedOperationException("此方法尚未实现");
     }
 
     @Override
-    public void copyDocument(Long documentId, CopyResourceRequest copyRequest) {
-        // TODO: 实现复制文档逻辑
-        log.info("复制文档: documentId={}, request={}", documentId, copyRequest);
-        throw new UnsupportedOperationException("待实现");
+    public void restoreResource(Long resId) {
+        log.info("从回收站恢复资源: resId={}", resId);
+        throw new UnsupportedOperationException("此方法尚未实现");
     }
 
     @Override
-    public ShareUrlVO shareDocument(Long documentId) {
-        // TODO: 实现生成分享链接逻辑
-        log.info("生成文档分享链接: documentId={}", documentId);
-        throw new UnsupportedOperationException("待实现");
+    public void permanentlyDeleteResource(Long resId) {
+        log.info("彻底删除资源: resId={}", resId);
+        throw new UnsupportedOperationException("此方法尚未实现");
     }
 
     @Override
-    public PublicResourceVO getSharedDocument(String shareId) {
-        // TODO: 实现查看分享文档逻辑
-        log.info("查看分享文档: shareId={}", shareId);
-        throw new UnsupportedOperationException("待实现");
+    public void moveResource(Long resId, MoveResourceRequest moveRequest) {
+        log.info("移动资源: resId={}, request={}", resId, moveRequest);
+        throw new UnsupportedOperationException("此方法尚未实现");
     }
 
     @Override
-    public void likeResource(Long resourceId) {
-        // TODO: 实现点赞文章逻辑
-        log.info("点赞文章: resourceId={}", resourceId);
-        throw new UnsupportedOperationException("待实现");
+    public void copyResource(Long resId, CopyResourceRequest copyRequest) {
+        log.info("复制资源: resId={}, request={}", resId, copyRequest);
+        throw new UnsupportedOperationException("此方法尚未实现");
     }
 
     @Override
-    public void unlikeResource(Long resourceId) {
-        // TODO: 实现取消点赞文章逻辑
-        log.info("取消点赞文章: resourceId={}", resourceId);
-        throw new UnsupportedOperationException("待实现");
+    public void copyResourceTree(Long resId, CopyResourceRequest copyRequest) {
+        log.info("复制目录树: resId={}, request={}", resId, copyRequest);
+        throw new UnsupportedOperationException("此方法尚未实现");
     }
 
     @Override
-    public List<?> getResourceComments(Long resourceId) {
-        // TODO: 实现获取文章评论列表逻辑
-        log.info("获取文章评论列表: resourceId={}", resourceId);
-        throw new UnsupportedOperationException("待实现");
+    public ShareUrlVO generateResourceShareLink(Long resId) {
+        log.info("生成资源分享链接: resId={}", resId);
+        throw new UnsupportedOperationException("此方法尚未实现");
     }
 
     @Override
-    public Object createComment(Long resourceId, Object commentRequest) {
-        // TODO: 实现发表评论逻辑
-        log.info("发表评论: resourceId={}", resourceId);
-        throw new UnsupportedOperationException("待实现");
+    public PublicResourceVO accessSharedResource(String kbShareId, String resShareId) {
+        log.info("访问分享资源: kbShareId={}, resShareId={}", kbShareId, resShareId);
+        throw new UnsupportedOperationException("此方法尚未实现");
+    }
+
+    @Override
+    public void likeArticle(Long articleId) {
+        log.info("点赞文章: articleId={}", articleId);
+        throw new UnsupportedOperationException("此方法尚未实现");
+    }
+
+    @Override
+    public void unlikeArticle(Long articleId) {
+        log.info("取消点赞文章: articleId={}", articleId);
+        throw new UnsupportedOperationException("此方法尚未实现");
+    }
+
+    @Override
+    public List<?> listArticleComments(Long articleId) {
+        log.info("获取文章评论列表: articleId={}", articleId);
+        throw new UnsupportedOperationException("此方法尚未实现");
+    }
+
+    @Override
+    public Object createComment(Long articleId, Object commentRequest) {
+        log.info("发表评论: articleId={}", articleId);
+        throw new UnsupportedOperationException("此方法尚未实现");
+    }
+
+    @Override
+    public void deleteComment(Long commentId) {
+        log.info("删除评论: commentId={}", commentId);
+        throw new UnsupportedOperationException("此方法尚未实现");
+    }
+
+    @Override
+    public void createSubmission(Object submissionRequest) {
+        log.info("提交投稿: request={}", submissionRequest);
+        throw new UnsupportedOperationException("此方法尚未实现");
+    }
+
+    @Override
+    public List<PublicResourceVO> listExploreArticles() {
+        log.info("获取推荐文章列表");
+        throw new UnsupportedOperationException("此方法尚未实现");
+    }
+
+    @Override
+    public List<?> getResourceTree(Long kbId) {
+        log.info("获取知识库资源目录树: kbId={}", kbId);
+        throw new UnsupportedOperationException("此方法尚未实现");
     }
 }

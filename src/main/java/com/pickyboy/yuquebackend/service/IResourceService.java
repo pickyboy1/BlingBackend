@@ -6,7 +6,6 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.pickyboy.yuquebackend.domain.dto.resource.CopyResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.CreateResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.MoveResourceRequest;
-import com.pickyboy.yuquebackend.domain.dto.resource.RestoreResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceContentRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceInfoRequest;
 import com.pickyboy.yuquebackend.domain.entity.Resources;
@@ -21,113 +20,173 @@ import com.pickyboy.yuquebackend.domain.vo.resource.ShareUrlVO;
 public interface IResourceService extends IService<Resources> {
 
     /**
-     * 创建新文档
+     * 在知识库中新建资源
      *
+     * @param kbId 知识库ID
      * @param createRequest 创建请求
-     * @return 文档信息
+     * @return 资源信息
      */
-    Resources createDocument(CreateResourceRequest createRequest);
+    Resources createResource(Long kbId, CreateResourceRequest createRequest);
 
     /**
-     * 获取文档内容
+     * 查看单个资源的完整信息
      *
-     * @param documentId 文档ID
-     * @return 文档内容
+     * @param resId 资源ID
+     * @return 资源内容
      */
-    Resources getDocument(Long documentId);
+    Resources getResourceById(Long resId);
 
     /**
-     * 更新文档内容
+     * 更新资源内容或标题
      *
-     * @param documentId 文档ID
+     * @param resId 资源ID
      * @param updateRequest 更新请求
-     * @return 更新后的文档
      */
-    Resources updateDocument(Long documentId, UpdateResourceContentRequest updateRequest);
+    void updateResource(Long resId, UpdateResourceContentRequest updateRequest);
 
     /**
-     * 删除文档 (逻辑删除)
+     * 删除资源 (逻辑删除)
      *
-     * @param documentId 文档ID
+     * @param resId 资源ID
      */
-    void deleteDocument(Long documentId);
+    void deleteResource(Long resId);
 
     /**
-     * 更新文档信息 (如重命名, 修改可见性)
+     * 重命名资源
      *
-     * @param documentId 文档ID
+     * @param resId 资源ID
      * @param infoRequest 信息更新请求
      */
-    void updateDocumentInfo(Long documentId, UpdateResourceInfoRequest infoRequest);
+    void renameResource(Long resId, UpdateResourceInfoRequest infoRequest);
 
     /**
-     * 从回收站恢复文档
+     * 更新资源可见性
      *
-     * @param documentId 文档ID
-     * @param restoreRequest 恢复请求
+     * @param resId 资源ID
+     * @param visibilityRequest 可见性更新请求
      */
-    void restoreDocument(Long documentId, RestoreResourceRequest restoreRequest);
+    void updateResourceVisibility(Long resId, Object visibilityRequest);
 
     /**
-     * 移动文档或目录
+     * 更新资源上架/下架状态
      *
-     * @param documentId 文档ID
+     * @param resId 资源ID
+     * @param statusRequest 状态更新请求
+     */
+    void updateResourceStatus(Long resId, Object statusRequest);
+
+    /**
+     * 恢复资源
+     *
+     * @param resId 资源ID
+     */
+    void restoreResource(Long resId);
+
+    /**
+     * 彻底删除资源
+     *
+     * @param resId 资源ID
+     */
+    void permanentlyDeleteResource(Long resId);
+
+    /**
+     * 移动资源或目录
+     *
+     * @param resId 资源ID
      * @param moveRequest 移动请求
      */
-    void moveDocument(Long documentId, MoveResourceRequest moveRequest);
+    void moveResource(Long resId, MoveResourceRequest moveRequest);
 
     /**
-     * 复制文档或目录 (递归)
+     * 复制资源
      *
-     * @param documentId 文档ID
+     * @param resId 资源ID
      * @param copyRequest 复制请求
      */
-    void copyDocument(Long documentId, CopyResourceRequest copyRequest);
+    void copyResource(Long resId, CopyResourceRequest copyRequest);
 
     /**
-     * 生成并获取文档分享链接
+     * 复制目录(及目录下所有子资源)
      *
-     * @param documentId 文档ID
+     * @param resId 资源ID
+     * @param copyRequest 复制请求
+     */
+    void copyResourceTree(Long resId, CopyResourceRequest copyRequest);
+
+    /**
+     * 生成资源分享链接
+     *
+     * @param resId 资源ID
      * @return 分享链接信息
      */
-    ShareUrlVO shareDocument(Long documentId);
+    ShareUrlVO generateResourceShareLink(Long resId);
 
     /**
-     * 查看分享的文档
+     * 访问分享链接查看资源
      *
-     * @param shareId 分享ID
-     * @return 公开文档内容
+     * @param kbShareId 知识库分享ID
+     * @param resShareId 资源分享ID
+     * @return 公开资源内容
      */
-    PublicResourceVO getSharedDocument(String shareId);
+    PublicResourceVO accessSharedResource(String kbShareId, String resShareId);
 
     /**
      * 点赞文章
      *
-     * @param resourceId 文章ID
+     * @param articleId 文章ID
      */
-    void likeResource(Long resourceId);
+    void likeArticle(Long articleId);
 
     /**
      * 取消点赞文章
      *
-     * @param resourceId 文章ID
+     * @param articleId 文章ID
      */
-    void unlikeResource(Long resourceId);
+    void unlikeArticle(Long articleId);
 
     /**
      * 获取文章的评论列表
      *
-     * @param resourceId 文章ID
+     * @param articleId 文章ID
      * @return 评论列表
      */
-    List<?> getResourceComments(Long resourceId);
+    List<?> listArticleComments(Long articleId);
 
     /**
-     * 发表顶级评论
+     * 发表评论
      *
-     * @param resourceId 文章ID
+     * @param articleId 文章ID
      * @param commentRequest 评论请求
      * @return 评论信息
      */
-    Object createComment(Long resourceId, Object commentRequest);
+    Object createComment(Long articleId, Object commentRequest);
+
+    /**
+     * 删除评论
+     *
+     * @param commentId 评论ID
+     */
+    void deleteComment(Long commentId);
+
+    /**
+     * 提交投稿（申请推荐）
+     *
+     * @param submissionRequest 投稿请求
+     */
+    void createSubmission(Object submissionRequest);
+
+    /**
+     * 获取推荐文章列表
+     *
+     * @return 推荐文章列表
+     */
+    List<PublicResourceVO> listExploreArticles();
+
+    /**
+     * 获取知识库下的资源目录树
+     *
+     * @param kbId 知识库ID
+     * @return 资源目录树
+     */
+    List<?> getResourceTree(Long kbId);
 }

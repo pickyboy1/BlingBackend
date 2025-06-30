@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.pickyboy.yuquebackend.common.response.Result;
@@ -16,10 +17,14 @@ import com.pickyboy.yuquebackend.domain.dto.knowledgebase.InsertKnowledgeBaseReq
 import com.pickyboy.yuquebackend.domain.entity.KnowledgeBases;
 import com.pickyboy.yuquebackend.domain.entity.Resources;
 import com.pickyboy.yuquebackend.domain.vo.knowledgebase.KbsWithRecentResourceVo;
-import com.pickyboy.yuquebackend.domain.vo.resource.ResourceTreeVo;
 import com.pickyboy.yuquebackend.domain.vo.knowledgebase.TrashVO;
+import com.pickyboy.yuquebackend.domain.vo.resource.ResourceTreeVo;
 import com.pickyboy.yuquebackend.service.IKnowledgeBaseService;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -39,13 +44,15 @@ public class KnowledgeBaseController {
 
     /**
      * 获取当前用户的知识库列表
-     * GET /knowledge-bases
+     * GET /knowledge-bases?withRecentResources=true/false
      *
+     * @param withRecentResources 是否包含最近资源
      * @return 知识库列表
      */
     @GetMapping("/knowledge-bases")
-    public Result<List<KbsWithRecentResourceVo>> getUserKnowledgeBases(@PathVariable boolean withRecentResources) {
-        log.info("获取当前用户的知识库列表");
+    public Result<List<KbsWithRecentResourceVo>> getUserKnowledgeBases(
+            @RequestParam(value = "withRecentResources", defaultValue = "false") boolean withRecentResources) {
+        log.info("获取当前用户的知识库列表: withRecentResources={}", withRecentResources);
         List<KbsWithRecentResourceVo> knowledgeBases = knowledgeBaseService.getUserKnowledgeBases(withRecentResources);
         return Result.success(knowledgeBases);
     }
@@ -55,15 +62,12 @@ public class KnowledgeBaseController {
      * POST /knowledge-bases
      *
      * @param createRequest 创建请求
-     * @return 创建的知识库信息
+     * @return 操作结果
      */
     @PostMapping("/knowledge-bases")
-    public Result<KnowledgeBases> createKnowledgeBase(@RequestBody InsertKnowledgeBaseRequest createRequest) {
+    public Result<Void> createKnowledgeBase(@Valid @RequestBody InsertKnowledgeBaseRequest createRequest) {
         log.info("创建新的知识库: name={}", createRequest.getName());
-        boolean success = knowledgeBaseService.createKnowledgeBase(createRequest);
-        if(!success){
-            return Result.error("创建知识库失败");
-        }
+        knowledgeBaseService.createKnowledgeBase(createRequest);
         return Result.success();
     }
 
@@ -101,16 +105,13 @@ public class KnowledgeBaseController {
      *
      * @param kbId 知识库ID
      * @param updateRequest 更新请求
-     * @return 更新后的知识库信息
+     * @return 操作结果
      */
     @PutMapping("/knowledge-bases/{kbId}")
     public Result<Void> updateKnowledgeBase(@PathVariable Long kbId,
-                                                       @RequestBody InsertKnowledgeBaseRequest updateRequest) {
+                                           @Valid @RequestBody InsertKnowledgeBaseRequest updateRequest) {
         log.info("更新知识库信息: kbId={}", kbId);
-        boolean success = knowledgeBaseService.updateKnowledgeBase(kbId, updateRequest);
-        if(!success){
-            return Result.error("更新知识库失败");
-        }
+        knowledgeBaseService.updateKnowledgeBase(kbId, updateRequest);
         return Result.success();
     }
 
@@ -124,29 +125,29 @@ public class KnowledgeBaseController {
     @DeleteMapping("/knowledge-bases/{kbId}")
     public Result<Void> deleteKnowledgeBase(@PathVariable Long kbId) {
         log.info("删除知识库: kbId={}", kbId);
-        boolean success = knowledgeBaseService.deleteKnowledgeBase(kbId);
-        if(!success){
-            return Result.error("删除知识库失败,知识库不存在");
-        }
+        knowledgeBaseService.deleteKnowledgeBase(kbId);
         return Result.success();
     }
 
-    /*
-    更改知识库的可见性
+    /**
+     * 更改知识库的可见性
+     * PUT /knowledge-bases/{kbId}/visibility
+     *
+     * @param kbId 知识库ID
+     * @param visibilityRequest 可见性设置请求
+     * @return 操作结果
      */
     @PutMapping("/knowledge-bases/{kbId}/visibility")
-    public Result<Void> updateKnowledgeBaseVisibility(@PathVariable Long kbId, @RequestBody Integer visibility) {
-        log.info("更新知识库可见性: kbId={}, visibility={}", kbId, visibility);
-        boolean success = knowledgeBaseService.updateKnowledgeBaseVisibility(kbId, visibility);
-        if(!success){
-            return Result.error("更新知识库可见性失败");
-        }
+    public Result<Void> updateKnowledgeBaseVisibility(@PathVariable Long kbId,
+                                                      @Valid @RequestBody VisibilityRequest visibilityRequest) {
+        log.info("更新知识库可见性: kbId={}, visibility={}", kbId, visibilityRequest.getVisibility());
+        knowledgeBaseService.updateKnowledgeBaseVisibility(kbId, visibilityRequest.getVisibility());
         return Result.success();
     }
 
     /**
      * 从回收站恢复知识库
-     * POST /knowledge-bases/{kbId}/restore
+     * POST /recycle-bin/knowledge-bases/{kbId}
      *
      * @param kbId 知识库ID
      * @return 操作结果
@@ -183,5 +184,19 @@ public class KnowledgeBaseController {
         log.info("获取回收站内容列表");
         TrashVO trash = knowledgeBaseService.getTrashContent();
         return Result.success(trash);
+    }
+
+    /**
+     * 可见性设置请求VO
+     */
+    @lombok.Data
+    public static class VisibilityRequest {
+        /**
+         * 可见性设置：0-私有，1-公开
+         */
+        @NotNull(message = "可见性设置不能为空")
+        @Min(value = 0, message = "可见性值必须为0或1")
+        @Max(value = 1, message = "可见性值必须为0或1")
+        private Integer visibility;
     }
 }
