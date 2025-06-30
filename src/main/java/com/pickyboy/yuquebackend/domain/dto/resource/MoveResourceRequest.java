@@ -15,7 +15,7 @@ public class MoveResourceRequest {
      * 目标知识库ID
      */
     @NotNull(message = "目标知识库ID不能为空")
-    private Long targetKnowledgeBaseId;
+    private Long targetKbId;
 
     /**
      * 目标父文档ID（如果是根目录则为null）

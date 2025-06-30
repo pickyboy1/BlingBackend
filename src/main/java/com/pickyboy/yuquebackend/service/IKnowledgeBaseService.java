@@ -2,6 +2,7 @@ package com.pickyboy.yuquebackend.service;
 
 import java.util.List;
 
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.pickyboy.yuquebackend.domain.dto.knowledgebase.InsertKnowledgeBaseRequest;
 import com.pickyboy.yuquebackend.domain.entity.KnowledgeBases;
 import com.pickyboy.yuquebackend.domain.entity.Resources;
@@ -14,7 +15,7 @@ import com.pickyboy.yuquebackend.domain.vo.resource.ResourceTreeVo;
  *
  * @author pickyboy
  */
-public interface IKnowledgeBaseService {
+public interface IKnowledgeBaseService extends IService<KnowledgeBases> {
 
     /**
      * 获取当前用户的知识库列表

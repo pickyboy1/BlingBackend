@@ -18,7 +18,6 @@ import com.pickyboy.yuquebackend.common.response.Result;
 import com.pickyboy.yuquebackend.domain.dto.resource.CopyResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.CreateResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.MoveResourceRequest;
-import com.pickyboy.yuquebackend.domain.dto.resource.RestoreResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceContentRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceInfoRequest;
 import com.pickyboy.yuquebackend.domain.entity.Resources;
@@ -269,12 +268,12 @@ public class ResourceController {
     }
 
     /**
-     * 获取知识库下的资源目录树
+     * 获取知识库下的资源目录树(知识库模块实现)
      */
-    @GetMapping("/knowledge-bases/{kbId}/resources/tree")
+/*     @GetMapping("/knowledge-bases/{kbId}/resources/tree")
     public Result<List<?>> getResourceTree(@PathVariable Long kbId) {
         log.info("获取知识库资源目录树: kbId={}", kbId);
         List<?> tree = resourceService.getResourceTree(kbId);
         return Result.success(tree);
-    }
+    } */
 }

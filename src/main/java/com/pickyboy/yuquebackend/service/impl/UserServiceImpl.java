@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -41,6 +42,7 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
     private final IKnowledgeBaseService knowledgeBaseService;
 
     @Override
+    @Transactional
     public boolean register(RegisterRequest registerRequest) {
         log.info("执行用户注册: registerType={}", registerRequest.getRegisterType());
 
@@ -152,6 +154,7 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
     }
 
     @Override
+    @Transactional
     public Users updateCurrentUser(UpdateUserRequest updateRequest) {
         log.info("更新当前用户信息");
         Long userId = CurrentHolder.getCurrentUserId();

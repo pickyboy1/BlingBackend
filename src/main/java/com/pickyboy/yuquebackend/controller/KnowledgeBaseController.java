@@ -88,14 +88,14 @@ public class KnowledgeBaseController {
     /**
      * 获取指定知识库下文档树(要么是点进知识库,要么是点到知识库的文档)
      * 会触发知识库访问量增加
-     * GET /knowledge-bases/{kbId}/documents
+     * GET /knowledge-bases/{kbId}/resources/tree
      *
      * @param kbId 知识库ID
      * @return 知识库下文档树
      */
-    @GetMapping("/knowledge-bases/{kbId}/documents")
+    @GetMapping("/knowledge-bases/{kbId}/resources/tree")
     public Result<List<ResourceTreeVo>> getKnowledgeBaseWithDocuments(@PathVariable Long kbId) {
-        log.info("获取知识库详细信息及其文档树: kbId={}", kbId);
+        log.info("获取知识库下文档树: kbId={}", kbId);
         List<ResourceTreeVo> knowledgeBaseWithDocuments = knowledgeBaseService.getKnowledgeBaseWithDocuments(kbId);
         return Result.success(knowledgeBaseWithDocuments);
     }

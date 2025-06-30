@@ -88,6 +88,11 @@ public class Resources implements Serializable {
      */
     private LocalDateTime publishedAt;
 
+    /*
+    * 浏览量
+    * */
+    private Integer viewCount;
+
     /**
      * 点赞数
      */

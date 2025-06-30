@@ -35,7 +35,7 @@ public enum ErrorCode {
     RESOURCE_MOVE_FAILED(3004, "资源移动失败"),
     RESOURCE_COPY_FAILED(3005, "资源复制失败"),
     INVALID_RESOURCE_TYPE(3006, "无效的资源类型"),
-
+    INVALID_REQUEST(3007, "无效的请求参数"),
     // 文件上传相关错误码 (4000-4999)
     FILE_UPLOAD_FAILED(4001, "文件上传失败"),
     FILE_SIZE_EXCEEDED(4002, "文件大小超出限制"),

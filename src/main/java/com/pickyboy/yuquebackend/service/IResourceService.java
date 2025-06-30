@@ -103,7 +103,7 @@ public interface IResourceService extends IService<Resources> {
      * @param resId 资源ID
      * @param copyRequest 复制请求
      */
-    void copyResource(Long resId, CopyResourceRequest copyRequest);
+    Resources copyResource(Long resId, CopyResourceRequest copyRequest);
 
     /**
      * 复制目录(及目录下所有子资源)
@@ -182,11 +182,4 @@ public interface IResourceService extends IService<Resources> {
      */
     List<PublicResourceVO> listExploreArticles();
 
-    /**
-     * 获取知识库下的资源目录树
-     *
-     * @param kbId 知识库ID
-     * @return 资源目录树
-     */
-    List<?> getResourceTree(Long kbId);
 }
