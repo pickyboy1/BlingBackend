@@ -72,7 +72,7 @@ public class KnowledgeBaseController {
     }
 
     /**
-     * 获取指定知识库的详细信息
+     * 获取指定知识库的详细信息(用于知识库编辑页面展示和查看他人知识库详细信息)
      * GET /knowledge-bases/{kbId}
      *
      * @param kbId 知识库ID
@@ -86,7 +86,8 @@ public class KnowledgeBaseController {
     }
 
     /**
-     * 获取指定知识库下文档树
+     * 获取指定知识库下文档树(要么是点进知识库,要么是点到知识库的文档)
+     * 会触发知识库访问量增加
      * GET /knowledge-bases/{kbId}/documents
      *
      * @param kbId 知识库ID

@@ -1,5 +1,7 @@
 package com.pickyboy.yuquebackend.service.impl;
 
+import java.util.List;
+
 import com.pickyboy.yuquebackend.domain.entity.ResourceVersions;
 import com.pickyboy.yuquebackend.mapper.ResourceVersionsMapper;
 import com.pickyboy.yuquebackend.service.IResourceVersionsService;
@@ -17,4 +19,29 @@ import org.springframework.stereotype.Service;
 @Service
 public class ResourceVersionsServiceImpl extends ServiceImpl<ResourceVersionsMapper, ResourceVersions> implements IResourceVersionsService {
 
+    @Override
+    public void createResourceVersion(Long resId, String oldContent) {
+        ResourceVersions resourceVersion = new ResourceVersions();
+        resourceVersion.setResourceId(resId);
+        resourceVersion.setObjectUrl(oldContent);
+        save(resourceVersion);
+    }
+
+    @Override
+    public List<ResourceVersions> getResourceVersions(Long resId) {
+        // todo: 实现
+        throw new UnsupportedOperationException("此方法尚未实现");
+    }
+
+    @Override
+    public void deleteResourceVersion(Long resId) {
+        // todo: 实现
+        throw new UnsupportedOperationException("此方法尚未实现");
+    }
+
+    @Override
+    public void deleteResourceVersionById(Long versionId) {
+        // todo: 实现
+        throw new UnsupportedOperationException("此方法尚未实现");
+    }
 }

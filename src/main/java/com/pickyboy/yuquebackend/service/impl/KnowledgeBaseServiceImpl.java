@@ -37,6 +37,11 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBasesMapper, 
 
     private final IResourceService resourceService;
 
+    /*
+        获取当前用户的知识库列表
+        @param withRecentResources 是否包含最近资源
+        @return 知识库列表
+     */
     @Override
     public List<KbsWithRecentResourceVo> getUserKnowledgeBases(boolean withRecentResources) {
         log.info("获取当前用户的知识库列表");
@@ -74,6 +79,11 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBasesMapper, 
         return kbsWithRecentResourceVos;
     }
 
+    /*
+        获取知识库最近资源,用于与知识库列表一起展示
+        @param kbId 知识库ID
+        @return 最近资源列表
+     */
     @Override
     public List<Resources> getRecentResources(Long kbId) {
         if (kbId == null) {
@@ -129,6 +139,12 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBasesMapper, 
         return true;
     }
 
+    /*
+        获取指定知识库的详细信息(用于知识库编辑页面展示和查看他人知识库详细信息)
+        会触发知识库访问量增加
+        @param kbId 知识库ID
+        @return 知识库详细信息
+     */
     @Override
     public KnowledgeBases getKnowledgeBase(Long kbId) {
         if (kbId == null) {
@@ -155,14 +171,29 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBasesMapper, 
             }
         }
 
+        if(currentUserId != null && !currentUserId.equals(knowledgeBase.getUserId())){
+            // 增加访问量
+            // todo: 使用Redis缓存访问量,根据时间窗口,过滤掉重复访问
+            knowledgeBase.setViewCount(knowledgeBase.getViewCount() + 1);
+            updateById(knowledgeBase);
+            // 不回显shareId
+            knowledgeBase.setShareId(null);
+        }
         return knowledgeBase;
     }
 
+    /*
+        获取指定知识库下文档树(点进知识库,或者点进知识库的文档)
+        会触发知识库访问量增加
+        @param kbId 知识库ID
+        @return 知识库下文档树
+     */
     @Override
     public List<ResourceTreeVo> getKnowledgeBaseWithDocuments(Long kbId) {
         log.info("获取知识库文档树: kbId={}", kbId);
 
         // 验证知识库访问权限
+        // 会触发知识库访问量增加,所以这里不需要再增加访问量
         getKnowledgeBase(kbId);
 
         // MyBatis Plus会自动过滤逻辑删除的数据

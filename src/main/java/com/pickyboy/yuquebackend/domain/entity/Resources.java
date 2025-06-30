@@ -10,6 +10,8 @@ import com.baomidou.mybatisplus.annotation.TableName;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import lombok.experimental.Accessors;
 
 /**
@@ -24,6 +26,8 @@ import lombok.experimental.Accessors;
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
 @TableName("resources")
+@NoArgsConstructor
+@AllArgsConstructor
 public class Resources implements Serializable {
 
     private static final long serialVersionUID = 1L;
