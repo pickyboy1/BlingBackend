@@ -44,7 +44,7 @@ minio:
     resource: "bling-resources"          # 资源/文档存储桶
     cover: "bling-covers"                # 封面图片存储桶
 
-# JWT
+# JWT??
 yuque:
   jwt:
     secret-key: "yuque-very-long-secret-key-for-jwt-2025"
