@@ -1,7 +1,9 @@
 package com.pickyboy.yuquebackend.service.impl;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,9 +21,11 @@ import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceContentReques
 import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceInfoRequest;
 import com.pickyboy.yuquebackend.domain.entity.KnowledgeBases;
 import com.pickyboy.yuquebackend.domain.entity.Resources;
+import com.pickyboy.yuquebackend.domain.entity.ViewHistories;
 import com.pickyboy.yuquebackend.domain.vo.resource.PublicResourceVO;
 import com.pickyboy.yuquebackend.domain.vo.resource.ShareUrlVO;
 import com.pickyboy.yuquebackend.mapper.ResourcesMapper;
+import com.pickyboy.yuquebackend.mapper.ViewHistoriesMapper;
 import com.pickyboy.yuquebackend.service.IKnowledgeBaseService;
 import com.pickyboy.yuquebackend.service.IResourceService;
 import com.pickyboy.yuquebackend.service.IResourceVersionsService;
@@ -43,6 +47,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
     private final IResourceVersionsService resourceVersionsService;
     private final IKnowledgeBaseService knowledgeBaseService;
     private final MinioUtil minioUtil;
+    private final ViewHistoriesMapper viewHistoriesMapper;
 
     /* 在知识库中新建资源
      * 只新建资源记录,无实际内容
@@ -86,11 +91,36 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         if (resource.getUserId() != userId && resource.getVisibility() == 0) {
             throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED);
         }
+
+        // 异步记录浏览历史
+        recordViewHistoryAsync(userId, resId);
+
         // 增加访问量
         // todo: 使用Redis缓存访问量,根据时间窗口,过滤掉重复访问
         resource.setViewCount(resource.getViewCount() + 1);
         updateById(resource);
         return resource;
+    }
+
+    /**
+     * 异步记录浏览历史
+     *
+     * @param userId 用户ID
+     * @param resourceId 资源ID
+     */
+    @Async
+    public void recordViewHistoryAsync(Long userId, Long resourceId) {
+        try {
+            log.debug("异步记录浏览历史: userId={}, resourceId={}", userId, resourceId);
+            ViewHistories viewHistory = new ViewHistories();
+            viewHistory.setUserId(userId);
+            viewHistory.setResourceId(resourceId);
+            viewHistory.setLastViewAt(LocalDateTime.now());
+            viewHistoriesMapper.insertOrUpdateViewHistory(viewHistory);
+        } catch (Exception e) {
+            log.warn("记录浏览历史失败: userId={}, resourceId={}, error={}", userId, resourceId, e.getMessage());
+            // 不抛出异常，避免影响主业务流程
+        }
     }
 
     @Override

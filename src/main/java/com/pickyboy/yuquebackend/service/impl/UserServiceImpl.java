@@ -1,12 +1,10 @@
 package com.pickyboy.yuquebackend.service.impl;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.pickyboy.yuquebackend.common.constants.LoginConstants;
 import com.pickyboy.yuquebackend.common.exception.BusinessException;
@@ -19,8 +17,10 @@ import com.pickyboy.yuquebackend.domain.dto.user.RegisterRequest;
 import com.pickyboy.yuquebackend.domain.dto.user.UpdateUserRequest;
 import com.pickyboy.yuquebackend.domain.entity.KnowledgeBases;
 import com.pickyboy.yuquebackend.domain.entity.Users;
+import com.pickyboy.yuquebackend.domain.vo.user.ActivityRecord;
 import com.pickyboy.yuquebackend.domain.vo.user.AuthResponse;
 import com.pickyboy.yuquebackend.domain.vo.user.UserPublicProfile;
+import com.pickyboy.yuquebackend.domain.vo.user.UserSummary;
 import com.pickyboy.yuquebackend.mapper.UsersMapper;
 import com.pickyboy.yuquebackend.service.IKnowledgeBaseService;
 import com.pickyboy.yuquebackend.service.IUserService;
@@ -38,116 +38,85 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements IUserService {
 
-    private final JwtUtil jwtUtil;
     private final IKnowledgeBaseService knowledgeBaseService;
+    private final JwtUtil jwtUtil;
 
     @Override
     @Transactional
     public boolean register(RegisterRequest registerRequest) {
         log.info("执行用户注册: registerType={}", registerRequest.getRegisterType());
 
-        // 验证注册类型
-        if (!LoginConstants.USERNAME.equals(registerRequest.getRegisterType()) &&
-            !LoginConstants.PHONE.equals(registerRequest.getRegisterType())) {
-            throw new BusinessException(ErrorCode.INVALID_REGISTER_TYPE);
-        }
-
+        // 检查用户是否已存在
         if (LoginConstants.USERNAME.equals(registerRequest.getRegisterType())) {
-            // 检查用户名是否已存在
-            Optional<Users> existingUser = getOneOpt(
-                new LambdaQueryWrapper<Users>().eq(Users::getUsername, registerRequest.getIdentifier())
-            );
-            if (existingUser.isPresent()) {
+            boolean exists = lambdaQuery()
+                    .eq(Users::getUsername, registerRequest.getIdentifier())
+                    .exists();
+            if (exists) {
                 throw new BusinessException(ErrorCode.USERNAME_ALREADY_EXISTS);
             }
-
-            // 创建新用户
-            Users user = new Users();
-            user.setUsername(registerRequest.getIdentifier());
-            user.setPasswordHash(PasswordUtil.encryptPassword(registerRequest.getPassword()));
-            user.setNickname(registerRequest.getIdentifier());
-
-            boolean saved = save(user);
-            if (!saved) {
-                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "用户注册失败");
-            }
-
-            log.info("用户注册成功: username={}", registerRequest.getIdentifier());
-            return true;
-        }
-
-        if (LoginConstants.PHONE.equals(registerRequest.getRegisterType())) {
+        } else if (LoginConstants.PHONE.equals(registerRequest.getRegisterType())) {
             // TODO: 实现手机号注册逻辑
             throw new BusinessException(ErrorCode.OPERATION_NOT_ALLOWED, "手机号注册功能暂未开放");
         }
 
-        return false;
+        // 创建新用户
+        Users user = new Users();
+        user.setUsername(registerRequest.getIdentifier());
+
+        // 对密码进行加密
+        String encryptedPassword = PasswordUtil.encryptPassword(registerRequest.getPassword());
+        user.setPasswordHash(encryptedPassword);
+        user.setNickname(registerRequest.getIdentifier()); // 默认昵称为用户名
+
+        boolean saved = save(user);
+        log.info("用户注册结果: success={}", saved);
+        return saved;
     }
 
     @Override
     public AuthResponse login(LoginRequest loginRequest) {
-        log.info("执行用户登录: loginType={}", loginRequest.getLoginType());
+        log.info("用户登录: loginType={}", loginRequest.getLoginType());
 
-        // 验证登录类型
-        if (!LoginConstants.USERNAME.equals(loginRequest.getLoginType()) &&
-            !LoginConstants.PHONE.equals(loginRequest.getLoginType())) {
-            throw new BusinessException(ErrorCode.INVALID_LOGIN_TYPE);
-        }
-
+        Users user = null;
+        // 根据登录类型查找用户
         if (LoginConstants.USERNAME.equals(loginRequest.getLoginType())) {
-            // 查找用户
-            Optional<Users> userOpt = getOneOpt(
-                new LambdaQueryWrapper<Users>().eq(Users::getUsername, loginRequest.getIdentifier())
-            );
-
-            if (!userOpt.isPresent()) {
-                throw new BusinessException(ErrorCode.USER_NOT_FOUND, "用户名不存在");
-            }
-
-            Users user = userOpt.get();
-
-            // 检查用户状态
-            if (Boolean.TRUE.equals(user.getIsDeleted())) {
-                throw new BusinessException(ErrorCode.USER_DISABLED, "用户已被删除");
-            }
-
-            // 验证密码
-            String encryptedPassword = PasswordUtil.encryptPassword(loginRequest.getCredential());
-            if (!user.getPasswordHash().equals(encryptedPassword)) {
-                throw new BusinessException(ErrorCode.INVALID_PASSWORD);
-            }
-
-            // 生成Token并返回用户信息
-            String token = jwtUtil.generateToken(user.getId(), user.getUsername());
-
-            log.info("用户登录成功: username={}", user.getUsername());
-            return new AuthResponse(token, user.getUsername(), user.getNickname(), user.getAvatarUrl());
-        }
-
-        if (LoginConstants.PHONE.equals(loginRequest.getLoginType())) {
+            user = lambdaQuery()
+                    .eq(Users::getUsername, loginRequest.getIdentifier())
+                    .one();
+        } else if (LoginConstants.PHONE.equals(loginRequest.getLoginType())) {
             // TODO: 实现手机号登录逻辑
             throw new BusinessException(ErrorCode.OPERATION_NOT_ALLOWED, "手机号登录功能暂未开放");
         }
 
-        throw new BusinessException(ErrorCode.INVALID_LOGIN_TYPE);
+        // 检查用户是否存在
+        if (user == null) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND, "用户不存在");
+        }
+
+        // 验证密码
+        if (!PasswordUtil.matches(loginRequest.getCredential(), user.getPasswordHash())) {
+            throw new BusinessException(ErrorCode.INVALID_PASSWORD, "密码错误");
+        }
+
+        // 生成JWT token
+        String token = jwtUtil.generateToken(user.getId(), user.getUsername());
+
+        AuthResponse response = new AuthResponse(token, user.getUsername(), user.getNickname(), user.getAvatarUrl());
+
+        log.info("用户登录成功: userId={}", user.getId());
+        return response;
     }
 
     @Override
     public Users getCurrentUser() {
-        log.info("获取当前登录用户信息");
-        Long userId = CurrentHolder.getCurrentUserId();
-        if (userId == null) {
+        Long currentUserId = CurrentHolder.getCurrentUserId();
+        if (currentUserId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
 
-        Users user = getById(userId);
+        Users user = getById(currentUserId);
         if (user == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
-        }
-
-        // 检查用户状态
-        if (Boolean.TRUE.equals(user.getIsDeleted())) {
-            throw new BusinessException(ErrorCode.USER_DISABLED, "用户已被删除");
         }
 
         return user;
@@ -156,23 +125,17 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
     @Override
     @Transactional
     public Users updateCurrentUser(UpdateUserRequest updateRequest) {
-        log.info("更新当前用户信息");
-        Long userId = CurrentHolder.getCurrentUserId();
-        if (userId == null) {
+        Long currentUserId = CurrentHolder.getCurrentUserId();
+        if (currentUserId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
 
-        Users user = getById(userId);
+        Users user = getById(currentUserId);
         if (user == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
 
-        // 检查用户状态
-        if (Boolean.TRUE.equals(user.getIsDeleted())) {
-            throw new BusinessException(ErrorCode.USER_DISABLED, "用户已被删除");
-        }
-
-        // 更新用户信息（只更新非空字段）
+        // 更新用户信息
         if (updateRequest.getNickname() != null) {
             user.setNickname(updateRequest.getNickname());
         }
@@ -189,12 +152,7 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
             user.setField(updateRequest.getField());
         }
 
-        boolean updated = updateById(user);
-        if (!updated) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "用户信息更新失败");
-        }
-
-        log.info("用户信息更新成功: userId={}", userId);
+        updateById(user);
         return user;
     }
 
@@ -207,10 +165,6 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
     @Override
     public UserPublicProfile getUserPublicProfile(Long userId) {
         log.info("获取用户公开信息: userId={}", userId);
-
-        if (userId == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户ID不能为空");
-        }
 
         Users user = getById(userId);
         if (user == null) {
@@ -245,83 +199,108 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
     @Override
     public void followUser(Long userId) {
         log.info("关注用户: userId={}", userId);
-
         Long currentUserId = CurrentHolder.getCurrentUserId();
         if (currentUserId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
 
-        if (userId == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户ID不能为空");
-        }
-
         if (currentUserId.equals(userId)) {
-            throw new BusinessException(ErrorCode.OPERATION_NOT_ALLOWED, "不能关注自己");
-        }
-
-        // 检查目标用户是否存在
-        Users targetUser = getById(userId);
-        if (targetUser == null || Boolean.TRUE.equals(targetUser.getIsDeleted())) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "不能关注自己");
         }
 
         // TODO: 实现关注用户逻辑
-        throw new BusinessException(ErrorCode.OPERATION_NOT_ALLOWED, "关注功能暂未实现");
+        // 1. 检查目标用户是否存在
+        // 2. 检查是否已经关注
+        // 3. 插入关注记录到 user_follows 表
+        log.warn("关注用户功能暂未实现");
     }
 
     @Override
     public void unfollowUser(Long userId) {
         log.info("取消关注用户: userId={}", userId);
-
         Long currentUserId = CurrentHolder.getCurrentUserId();
         if (currentUserId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
 
-        if (userId == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户ID不能为空");
-        }
-
         // TODO: 实现取消关注用户逻辑
-        throw new BusinessException(ErrorCode.OPERATION_NOT_ALLOWED, "取消关注功能暂未实现");
+        // 1. 检查是否已关注该用户
+        // 2. 删除关注记录
+        log.warn("取消关注用户功能暂未实现");
     }
 
     @Override
-    public List<?> getUserHistory() {
-        log.info("获取用户浏览历史");
+    public List<UserSummary> getUserFollowing(Long userId, Integer page, Integer limit) {
+        log.info("获取用户关注列表: userId={}, page={}, limit={}", userId, page, limit);
 
-        Long userId = CurrentHolder.getCurrentUserId();
-        if (userId == null) {
-            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
-        }
-
-        // TODO: 实现获取用户浏览历史逻辑
-        throw new BusinessException(ErrorCode.OPERATION_NOT_ALLOWED, "浏览历史功能暂未实现");
+        // TODO: 实现获取关注列表逻辑
+        // 1. 从 user_follows 表查询该用户关注的用户列表
+        // 2. 分页查询
+        // 3. 转换为 UserSummary VO
+        log.warn("获取用户关注列表功能暂未实现");
+        return List.of();
     }
 
     @Override
-    public List<?> getUserLikes() {
-        log.info("获取用户点赞文章列表");
+    public List<UserSummary> getUserFollowers(Long userId, Integer page, Integer limit) {
+        log.info("获取用户粉丝列表: userId={}, page={}, limit={}", userId, page, limit);
 
-        Long userId = CurrentHolder.getCurrentUserId();
-        if (userId == null) {
-            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
-        }
-
-        // TODO: 实现获取用户点赞文章列表逻辑
-        throw new BusinessException(ErrorCode.OPERATION_NOT_ALLOWED, "点赞列表功能暂未实现");
+        // TODO: 实现获取粉丝列表逻辑
+        // 1. 从 user_follows 表查询关注该用户的用户列表
+        // 2. 分页查询
+        // 3. 转换为 UserSummary VO
+        log.warn("获取用户粉丝列表功能暂未实现");
+        return List.of();
     }
 
     @Override
-    public List<?> getUserComments() {
-        log.info("获取用户评论列表");
-
-        Long userId = CurrentHolder.getCurrentUserId();
-        if (userId == null) {
+    public List<ActivityRecord> getUserViewHistory(Integer page, Integer limit) {
+        log.info("获取用户浏览历史: page={}, limit={}", page, limit);
+        Long currentUserId = CurrentHolder.getCurrentUserId();
+        if (currentUserId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
 
-        // TODO: 实现获取用户评论列表逻辑
-        throw new BusinessException(ErrorCode.OPERATION_NOT_ALLOWED, "评论列表功能暂未实现");
+        // TODO: 实现获取浏览历史逻辑
+        // 1. 从 view_histories 表查询该用户的浏览记录
+        // 2. 关联 resources、knowledge_bases、users 表获取完整信息
+        // 3. 分页查询，按浏览时间倒序
+        // 4. 转换为 ActivityRecord VO
+        log.warn("获取用户浏览历史功能暂未实现");
+        return List.of();
+    }
+
+    @Override
+    public List<ActivityRecord> getUserLikeHistory(Integer page, Integer limit) {
+        log.info("获取用户点赞历史: page={}, limit={}", page, limit);
+        Long currentUserId = CurrentHolder.getCurrentUserId();
+        if (currentUserId == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+
+        // TODO: 实现获取点赞历史逻辑
+        // 1. 从 likes 表查询该用户的点赞记录
+        // 2. 关联 resources、knowledge_bases、users 表获取完整信息
+        // 3. 分页查询，按点赞时间倒序
+        // 4. 转换为 ActivityRecord VO
+        log.warn("获取用户点赞历史功能暂未实现");
+        return List.of();
+    }
+
+    @Override
+    public List<ActivityRecord> getUserCommentHistory(Integer page, Integer limit) {
+        log.info("获取用户评论历史: page={}, limit={}", page, limit);
+        Long currentUserId = CurrentHolder.getCurrentUserId();
+        if (currentUserId == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+
+        // TODO: 实现获取评论历史逻辑
+        // 1. 从 comments 表查询该用户的评论记录
+        // 2. 关联 resources、knowledge_bases、users 表获取完整信息
+        // 3. 分页查询，按评论时间倒序
+        // 4. 转换为 ActivityRecord VO
+        log.warn("获取用户评论历史功能暂未实现");
+        return List.of();
     }
 }

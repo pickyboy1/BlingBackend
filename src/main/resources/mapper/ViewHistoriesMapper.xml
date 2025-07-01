@@ -2,4 +2,11 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.pickyboy.yuquebackend.mapper.ViewHistoriesMapper">
 
+    <insert id="insertOrUpdateViewHistory" parameterType="com.pickyboy.yuquebackend.domain.entity.ViewHistories">
+        INSERT INTO view_histories (user_id, resource_id, last_view_at)
+        VALUES (#{userId}, #{resourceId}, #{lastViewAt})
+        ON DUPLICATE KEY UPDATE
+            last_view_at = values(last_view_at)
+    </insert>
+
 </mapper>
