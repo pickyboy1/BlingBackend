@@ -171,6 +171,9 @@ public class UserController {
             @RequestParam(defaultValue = "20") Integer limit) {
         log.info("获取用户关注列表: userId={}, page={}, limit={}", userId, page, limit);
         List<UserSummary> following = userService.getUserFollowing(userId, page, limit);
+        for (UserSummary summary : following) {
+            summary.setIsFollowing(true);
+        }
         return Result.success(following);
     }
 
