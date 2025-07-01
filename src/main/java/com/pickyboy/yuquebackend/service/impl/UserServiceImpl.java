@@ -1,15 +1,11 @@
 package com.pickyboy.yuquebackend.service.impl;
 
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.pickyboy.yuquebackend.common.constants.LoginConstants;
 import com.pickyboy.yuquebackend.common.exception.BusinessException;
@@ -21,10 +17,8 @@ import com.pickyboy.yuquebackend.domain.dto.user.LoginRequest;
 import com.pickyboy.yuquebackend.domain.dto.user.RegisterRequest;
 import com.pickyboy.yuquebackend.domain.dto.user.UpdateUserRequest;
 import com.pickyboy.yuquebackend.domain.entity.KnowledgeBases;
-import com.pickyboy.yuquebackend.domain.entity.Resources;
 import com.pickyboy.yuquebackend.domain.entity.UserFollows;
 import com.pickyboy.yuquebackend.domain.entity.Users;
-import com.pickyboy.yuquebackend.domain.entity.ViewHistories;
 import com.pickyboy.yuquebackend.domain.vo.user.ActivityRecord;
 import com.pickyboy.yuquebackend.domain.vo.user.AuthResponse;
 import com.pickyboy.yuquebackend.domain.vo.user.UserPublicProfile;
@@ -32,6 +26,7 @@ import com.pickyboy.yuquebackend.domain.vo.user.UserSummary;
 import com.pickyboy.yuquebackend.mapper.CommentsMapper;
 import com.pickyboy.yuquebackend.mapper.LikesMapper;
 import com.pickyboy.yuquebackend.mapper.UsersMapper;
+import com.pickyboy.yuquebackend.mapper.ViewHistoriesMapper;
 import com.pickyboy.yuquebackend.service.IKnowledgeBaseService;
 import com.pickyboy.yuquebackend.service.IResourceService;
 import com.pickyboy.yuquebackend.service.IUserFollowsService;
@@ -58,6 +53,7 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
     private final LikesMapper likesMapper;
     private final CommentsMapper commentsMapper;
     private final IUserFollowsService userFollowsService;
+    private final ViewHistoriesMapper viewHistoriesMapper;
 
     @Override
     @Transactional
@@ -184,15 +180,20 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
     public UserPublicProfile getUserPublicProfile(Long userId) {
         log.info("获取用户公开信息: userId={}", userId);
 
+        Long currentUserId = CurrentHolder.getCurrentUserId();
+        if (currentUserId != null) {
+            throw  new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+
         Users user = getById(userId);
         if (user == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
 
-        // 检查用户状态
-        if (Boolean.TRUE.equals(user.getIsDeleted())) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND, "用户不存在");
-        }
+        // 检查当前用户是否已关注目标用户
+        boolean isFollowed = userFollowsService.getOne(new LambdaQueryWrapper<UserFollows>()
+                .eq(UserFollows::getFollowerId, currentUserId)
+                .eq(UserFollows::getFolloweeId, userId)) != null;
 
         UserPublicProfile userPublicProfile = new UserPublicProfile();
         userPublicProfile.setId(user.getId());
@@ -202,6 +203,7 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
         userPublicProfile.setLocation(user.getLocation());
         userPublicProfile.setFollowerCount(user.getFollowerCount());
         userPublicProfile.setFollowedCount(user.getFollowedCount());
+        userPublicProfile.setIsFollowed(isFollowed);
 
         // 获取用户公开知识库
         try {
@@ -319,63 +321,9 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
         if (currentUserId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
-        // 1. 从 view_histories 表查询该用户的浏览记录
-        List<ViewHistories> viewHistories = viewHistoriesService.page(new Page<>(page, limit),
-                new LambdaQueryWrapper<ViewHistories>()
-                        .eq(ViewHistories::getUserId, currentUserId)
-                        .orderByDesc(ViewHistories::getLastViewAt))
-                .getRecords();
 
-        // 2. 转换为 ActivityRecord VO
-        List<ActivityRecord> activityRecords = viewHistories.stream()
-                .map(viewHistory -> {
-                    ActivityRecord activityRecord = new ActivityRecord();
-                    activityRecord.setResourceId(viewHistory.getResourceId());
-                    activityRecord.setActionAt(viewHistory.getLastViewAt());
-                    return activityRecord;
-                })
-                .collect(Collectors.toList());
-        // 3. 关联 resources、knowledge_bases、users 表获取完整信息
-        // 资源id列表
-        List<Long> resourceIds = activityRecords.stream()
-                .map(ActivityRecord::getResourceId)
-                .collect(Collectors.toList());
-        // 资源列表
-        List<Resources> resources = resourceService.listByIds(resourceIds);
-        // 资源id与资源映射,用于快速查找资源
-        Map<Long, Resources> resourceMap = resources.stream()
-                .collect(Collectors.toMap(Resources::getId, Function.identity()));
-        // 知识库id列表
-        List<Long> knowledgeBaseIds = resources.stream()
-                .map(Resources::getKnowledgeBaseId)
-                .collect(Collectors.toList());
-        // 知识库列表
-        List<KnowledgeBases> knowledgeBases = knowledgeBaseService.listByIds(knowledgeBaseIds);
-        // 知识库id与知识库映射,用于快速查找知识库
-        Map<Long, KnowledgeBases> knowledgeBaseMap = knowledgeBases.stream()
-                .collect(Collectors.toMap(KnowledgeBases::getId, Function.identity()));
-
-        // 作者id列表
-        List<Long> userIds = resources.stream()
-                .map(Resources::getUserId)
-                .collect(Collectors.toList());
-        // 作者列表
-        List<Users> users = listByIds(userIds);
-        // 作者id与作者映射,用于快速查找作者
-        Map<Long, Users> userMap = users.stream()
-                .collect(Collectors.toMap(Users::getId, Function.identity()));
-        // 填充信息
-        activityRecords.forEach(activityRecord -> {
-            Resources resource = resourceMap.get(activityRecord.getResourceId());
-            if (resource != null) {
-                activityRecord.setResourceTitle(resource.getTitle());
-                activityRecord.setResourceType(resource.getType());
-                activityRecord.setKbId(resource.getKnowledgeBaseId());
-                activityRecord.setKbName(knowledgeBaseMap.get(resource.getKnowledgeBaseId()).getName());
-                activityRecord.setAuthorId(resource.getUserId());
-                activityRecord.setAuthorName(userMap.get(resource.getUserId()).getNickname());
-            }
-        });
+        Integer offset = (page - 1) * limit;
+        List<ActivityRecord> activityRecords = viewHistoriesMapper.getUserViewHistory(currentUserId, offset, limit);
         return activityRecords;
     }
 

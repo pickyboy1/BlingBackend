@@ -6,19 +6,24 @@
             c.resource_id AS resourceId,
             r.title AS resourceTitle,
             r.type AS resourceType,
-            kb.id AS kbId,
+            r.knowledge_base_id AS kbId,
             kb.name AS kbName,
-            u.id AS authorId,
+            r.user_id AS authorId,
             u.nickname AS authorName,
-            c.created_at AS actionAt
-        FROM comments as c JOIN resources as r ON c.resource_id = r.id
-            JOIN knowledge_bases as kb ON r.knowledge_base_id = kb.id
-            JOIN users as u ON r.user_id = u.id
+            c.created_at AS actionAt,
+            CASE
+                WHEN r.is_deleted = 1 THEN 'ARTICLE_DELETED'
+                WHEN kb.is_deleted = 1 THEN 'KB_DELETED'
+                WHEN u.is_deleted = 1 THEN 'AUTHOR_DELETED'
+                WHEN r.visibility = 0 THEN 'PRIVATE'
+                ELSE 'NORMAL'
+            END AS status
+        FROM comments as c
+        LEFT JOIN resources as r ON c.resource_id = r.id
+        LEFT JOIN knowledge_bases as kb ON r.knowledge_base_id = kb.id
+        LEFT JOIN users as u ON r.user_id = u.id
         WHERE c.user_id = #{userId}
           AND c.is_deleted = 0
-          AND r.is_deleted = 0
-          AND kb.is_deleted = 0
-          AND u.is_deleted = 0
         ORDER BY c.created_at DESC
         LIMIT #{limit} OFFSET #{offset}
     </select>
@@ -83,5 +88,5 @@
             c.created_at ASC -- 通常楼中楼按时间正序排列，便于阅读
         LIMIT #{limit} OFFSET #{offset}
     </select>
-    
+
 </mapper>

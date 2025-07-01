@@ -6,14 +6,22 @@
                 l.resource_id AS resourceId,
                 r.title AS resourceTitle,
                 r.type AS resourceType,
-                kb.id AS kbId,
+                r.knowledge_base_id AS kbId,
                 kb.name AS kbName,
-                u.id AS authorId,
+                r.user_id AS authorId,
                 u.nickname AS authorName,
-                l.created_at AS actionAt
-                FROM likes as l JOIN resources as r ON l.resource_id = r.id
-                    JOIN knowledge_bases as kb ON r.knowledge_base_id = kb.id
-                    JOIN users as u ON r.user_id = u.id
+                l.created_at AS actionAt,
+                CASE
+                    WHEN r.is_deleted = 1 THEN 'ARTICLE_DELETED'
+                    WHEN kb.is_deleted = 1 THEN 'KB_DELETED'
+                    WHEN u.is_deleted = 1 THEN 'AUTHOR_DELETED'
+                    WHEN r.visibility = 0 THEN 'PRIVATE'
+                    ELSE 'NORMAL'
+                END AS status
+            FROM likes as l
+            LEFT JOIN resources as r ON l.resource_id = r.id
+            LEFT JOIN knowledge_bases as kb ON r.knowledge_base_id = kb.id
+            LEFT JOIN users as u ON r.user_id = u.id
             WHERE l.user_id = #{userId}
             ORDER BY l.created_at DESC
             LIMIT #{limit} OFFSET #{offset}

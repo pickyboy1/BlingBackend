@@ -52,4 +52,14 @@ public class ActivityRecord {
      * 操作发生的时间
      */
     private LocalDateTime actionAt;
+
+    /**
+     * 文章状态
+     * NORMAL - 正常可访问
+     * ARTICLE_DELETED - 文章已删除
+     * KB_DELETED - 知识库已删除
+     * AUTHOR_DELETED - 作者已注销
+     * PRIVATE - 文章已设为私密
+     */
+    private String status;
 }

@@ -9,4 +9,31 @@
             last_view_at = values(last_view_at)
     </insert>
 
+    <!-- 获取用户浏览历史 -->
+    <select id="getUserViewHistory" resultType="com.pickyboy.yuquebackend.domain.vo.user.ActivityRecord">
+        SELECT
+            vh.resource_id AS resourceId,
+            r.title AS resourceTitle,
+            r.type AS resourceType,
+            r.knowledge_base_id AS kbId,
+            kb.name AS kbName,
+            r.user_id AS authorId,
+            u.nickname AS authorName,
+            vh.last_view_at AS actionAt,
+            CASE
+                WHEN r.is_deleted = 1 THEN 'ARTICLE_DELETED'
+                WHEN kb.is_deleted = 1 THEN 'KB_DELETED'
+                WHEN u.is_deleted = 1 THEN 'AUTHOR_DELETED'
+                WHEN r.visibility = 0 THEN 'PRIVATE'
+                ELSE 'NORMAL'
+            END AS status
+        FROM view_histories vh
+        LEFT JOIN resources r ON vh.resource_id = r.id
+        LEFT JOIN knowledge_bases kb ON r.knowledge_base_id = kb.id
+        LEFT JOIN users u ON r.user_id = u.id
+        WHERE vh.user_id = #{userId}
+        ORDER BY vh.last_view_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
 </mapper>
