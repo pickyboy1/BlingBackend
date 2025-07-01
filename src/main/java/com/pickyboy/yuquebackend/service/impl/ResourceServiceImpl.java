@@ -20,24 +20,23 @@ import com.pickyboy.yuquebackend.domain.dto.resource.CreateResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.MoveResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceContentRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceInfoRequest;
-import com.pickyboy.yuquebackend.domain.entity.KnowledgeBases;
+import com.pickyboy.yuquebackend.domain.entity.Comments;
 import com.pickyboy.yuquebackend.domain.entity.Likes;
 import com.pickyboy.yuquebackend.domain.entity.Resources;
+import com.pickyboy.yuquebackend.domain.entity.Users;
 import com.pickyboy.yuquebackend.domain.entity.ViewHistories;
 import com.pickyboy.yuquebackend.domain.vo.comment.RootCommentVO;
 import com.pickyboy.yuquebackend.domain.vo.comment.SubCommentVO;
 import com.pickyboy.yuquebackend.domain.vo.resource.PublicResourceVO;
 import com.pickyboy.yuquebackend.domain.vo.resource.ShareUrlVO;
 import com.pickyboy.yuquebackend.mapper.ResourcesMapper;
+import com.pickyboy.yuquebackend.mapper.UsersMapper;
 import com.pickyboy.yuquebackend.mapper.ViewHistoriesMapper;
 import com.pickyboy.yuquebackend.service.ICommentsService;
-import com.pickyboy.yuquebackend.service.IKnowledgeBaseService;
+import com.pickyboy.yuquebackend.service.IKnowledgeBaseValidationService;
 import com.pickyboy.yuquebackend.service.ILikesService;
 import com.pickyboy.yuquebackend.service.IResourceService;
 import com.pickyboy.yuquebackend.service.IResourceVersionsService;
-import com.pickyboy.yuquebackend.domain.entity.Comments;
-import com.pickyboy.yuquebackend.domain.entity.Users;
-import com.pickyboy.yuquebackend.service.IUserService;
 
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -54,12 +53,12 @@ import lombok.extern.slf4j.Slf4j;
 public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources> implements IResourceService {
 
     private final IResourceVersionsService resourceVersionsService;
-    private final IKnowledgeBaseService knowledgeBaseService;
+    private final IKnowledgeBaseValidationService knowledgeBaseValidationService;
     private final MinioUtil minioUtil;
     private final ViewHistoriesMapper viewHistoriesMapper;
     private final ILikesService likesService;
     private final ICommentsService commentsService;
-    private final IUserService userService;
+    private final UsersMapper usersMapper;
     /* 在知识库中新建资源
      * 只新建资源记录,无实际内容
      */
@@ -371,13 +370,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         }
 
         // 验证目标知识库是否存在且有权限访问
-        KnowledgeBases targetKb = knowledgeBaseService.getById(moveRequest.getTargetKbId());
-        if (targetKb == null) {
-            throw new BusinessException(ErrorCode.KNOWLEDGE_BASE_NOT_FOUND);
-        }
-        if (!targetKb.getUserId().equals(userId)) {
-            throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED);
-        }
+        knowledgeBaseValidationService.validateKnowledgeBaseOwnership(moveRequest.getTargetKbId(), userId);
 
         // 验证目标父节点是否存在（如果不为null）
         if (moveRequest.getTargetPreId() != null) {
@@ -447,13 +440,8 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         // 检查源资源对应的知识库是否被删除
         validateKnowledgeBaseAccess(resource.getKnowledgeBaseId(), userId);
 
-        KnowledgeBases targetKb = knowledgeBaseService.getById(copyRequest.getTargetKbId());
-        if (targetKb == null) {
-            throw new BusinessException(ErrorCode.KNOWLEDGE_BASE_NOT_FOUND);
-        }
-        if (!targetKb.getUserId().equals(userId)) {
-            throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED);
-        }
+        // 验证目标知识库是否存在且有权限访问
+        knowledgeBaseValidationService.validateKnowledgeBaseOwnership(copyRequest.getTargetKbId(), userId);
 
         // 2. 深拷贝文件内容
         // 假设资源类型存储在resource.getType()中，如果没有则用默认值
@@ -678,9 +666,11 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         rootCommentVO.setUserId(comment.getUserId());
         rootCommentVO.setReplyCount(comment.getReplyCount());
         rootCommentVO.setStatus(comment.getStatus());
-        Users user = userService.getById(comment.getUserId());
-        rootCommentVO.setNickname(user.getNickname());
-        rootCommentVO.setAvatarUrl(user.getAvatarUrl());
+        Users user = usersMapper.selectById(comment.getUserId());
+        if (user != null) {
+            rootCommentVO.setNickname(user.getNickname());
+            rootCommentVO.setAvatarUrl(user.getAvatarUrl());
+        }
         return rootCommentVO;
 
     }
@@ -749,12 +739,6 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
      * 验证知识库访问权限（检查知识库是否存在且未被删除）
      */
     private void validateKnowledgeBaseAccess(Long kbId, Long userId) {
-        KnowledgeBases kb = knowledgeBaseService.getById(kbId);
-        if (kb == null) {
-            throw new BusinessException(ErrorCode.KNOWLEDGE_BASE_NOT_FOUND);
-        }
-        if (!kb.getUserId().equals(userId)) {
-            throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED, "无权访问该知识库");
-        }
+        knowledgeBaseValidationService.validateKnowledgeBaseAccess(kbId, userId);
     }
 }

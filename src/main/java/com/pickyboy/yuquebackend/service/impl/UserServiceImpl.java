@@ -180,20 +180,20 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
     public UserPublicProfile getUserPublicProfile(Long userId) {
         log.info("获取用户公开信息: userId={}", userId);
 
-        Long currentUserId = CurrentHolder.getCurrentUserId();
-        if (currentUserId != null) {
-            throw  new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
-        }
-
         Users user = getById(userId);
         if (user == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
 
-        // 检查当前用户是否已关注目标用户
-        boolean isFollowed = userFollowsService.getOne(new LambdaQueryWrapper<UserFollows>()
-                .eq(UserFollows::getFollowerId, currentUserId)
-                .eq(UserFollows::getFolloweeId, userId)) != null;
+        Long currentUserId = CurrentHolder.getCurrentUserId();
+
+        // 检查当前用户是否已关注目标用户（仅在已登录时检查）
+        boolean isFollowed = false;
+        if (currentUserId != null) {
+            isFollowed = userFollowsService.getOne(new LambdaQueryWrapper<UserFollows>()
+                    .eq(UserFollows::getFollowerId, currentUserId)
+                    .eq(UserFollows::getFolloweeId, userId)) != null;
+        }
 
         UserPublicProfile userPublicProfile = new UserPublicProfile();
         userPublicProfile.setId(user.getId());
