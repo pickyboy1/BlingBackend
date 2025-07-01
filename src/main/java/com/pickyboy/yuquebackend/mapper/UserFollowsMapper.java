@@ -19,10 +19,10 @@ import com.pickyboy.yuquebackend.domain.vo.user.UserSummary;
  */
 public interface UserFollowsMapper extends BaseMapper<UserFollows> {
     @Select("SELECT u.id ,u.nickname, u.avatar_url, u.description  FROM user_follows uf JOIN users u ON uf.followee_id = u.id" +
-            " WHERE follower_id = #{userId}  LIMIT #{limit} OFFSET #{offset}")
+            " WHERE follower_id = #{userId}  AND u.is_deleted = 0 LIMIT #{limit} OFFSET #{offset}")
     List<UserSummary> getUserFollowing(@Param("userId") Long userId, @Param("offset") Integer offset, @Param("limit") Integer limit);
 
     @Select("SELECT u.id ,u.nickname, u.avatar_url, u.description  FROM user_follows uf JOIN users u ON uf.follower_id = u.id" +
-            " WHERE followee_id = #{userId}  LIMIT #{limit} OFFSET #{offset}")
+            " WHERE followee_id = #{userId}  AND u.is_deleted = 0 LIMIT #{limit} OFFSET #{offset}")
     List<UserSummary> getUserFollowers(@Param("userId") Long userId, @Param("offset") Integer offset, @Param("limit") Integer limit);
 }
