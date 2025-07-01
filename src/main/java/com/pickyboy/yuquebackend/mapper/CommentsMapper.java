@@ -1,7 +1,12 @@
 package com.pickyboy.yuquebackend.mapper;
 
-import com.pickyboy.yuquebackend.domain.entity.Comments;
+import java.util.List;
+
+import org.apache.ibatis.annotations.Param;
+
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.pickyboy.yuquebackend.domain.entity.Comments;
+import com.pickyboy.yuquebackend.domain.vo.user.ActivityRecord;
 
 /**
  * <p>
@@ -12,5 +17,6 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
  * @since 2025-06-25
  */
 public interface CommentsMapper extends BaseMapper<Comments> {
+    List<ActivityRecord> commentHistory(@Param("userId") Long userId, @Param("offset") Integer offset, @Param("limit") Integer limit);
 
 }

@@ -1,10 +1,15 @@
 package com.pickyboy.yuquebackend.service.impl;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.pickyboy.yuquebackend.common.constants.LoginConstants;
 import com.pickyboy.yuquebackend.common.exception.BusinessException;
@@ -16,14 +21,22 @@ import com.pickyboy.yuquebackend.domain.dto.user.LoginRequest;
 import com.pickyboy.yuquebackend.domain.dto.user.RegisterRequest;
 import com.pickyboy.yuquebackend.domain.dto.user.UpdateUserRequest;
 import com.pickyboy.yuquebackend.domain.entity.KnowledgeBases;
+import com.pickyboy.yuquebackend.domain.entity.Resources;
+import com.pickyboy.yuquebackend.domain.entity.UserFollows;
 import com.pickyboy.yuquebackend.domain.entity.Users;
+import com.pickyboy.yuquebackend.domain.entity.ViewHistories;
 import com.pickyboy.yuquebackend.domain.vo.user.ActivityRecord;
 import com.pickyboy.yuquebackend.domain.vo.user.AuthResponse;
 import com.pickyboy.yuquebackend.domain.vo.user.UserPublicProfile;
 import com.pickyboy.yuquebackend.domain.vo.user.UserSummary;
+import com.pickyboy.yuquebackend.mapper.CommentsMapper;
+import com.pickyboy.yuquebackend.mapper.LikesMapper;
 import com.pickyboy.yuquebackend.mapper.UsersMapper;
 import com.pickyboy.yuquebackend.service.IKnowledgeBaseService;
+import com.pickyboy.yuquebackend.service.IResourceService;
+import com.pickyboy.yuquebackend.service.IUserFollowsService;
 import com.pickyboy.yuquebackend.service.IUserService;
+import com.pickyboy.yuquebackend.service.IViewHistoriesService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +53,11 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
 
     private final IKnowledgeBaseService knowledgeBaseService;
     private final JwtUtil jwtUtil;
+    private final IViewHistoriesService viewHistoriesService;
+    private final IResourceService resourceService;
+    private final LikesMapper likesMapper;
+    private final CommentsMapper commentsMapper;
+    private final IUserFollowsService userFollowsService;
 
     @Override
     @Transactional
@@ -196,6 +214,7 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
         return userPublicProfile;
     }
 
+    @Transactional
     @Override
     public void followUser(Long userId) {
         log.info("关注用户: userId={}", userId);
@@ -208,13 +227,38 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "不能关注自己");
         }
 
-        // TODO: 实现关注用户逻辑
-        // 1. 检查目标用户是否存在
-        // 2. 检查是否已经关注
-        // 3. 插入关注记录到 user_follows 表
-        log.warn("关注用户功能暂未实现");
+        // 检查目标用户是否存在
+        Users targetUser = getById(userId);
+        if (targetUser == null) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        // 检查是否已经关注
+        boolean isFollowed = userFollowsService.lambdaQuery()
+                .eq(UserFollows::getFolloweeId, userId)
+                .eq(UserFollows::getFollowerId, currentUserId)
+                .exists();
+        if (isFollowed) {
+            throw new BusinessException(ErrorCode.USER_ALREADY_FOLLOWED);
+        }
+
+        // 插入关注记录
+        UserFollows userFollows = new UserFollows();
+        userFollows.setFolloweeId(userId);
+        userFollows.setFollowerId(currentUserId);
+        userFollowsService.save(userFollows);
+
+        // 更新关注者数量和被关注者粉丝数量
+        targetUser.setFollowerCount(targetUser.getFollowerCount() + 1);
+        Users currentUser = getById(currentUserId);
+        currentUser.setFollowedCount(currentUser.getFollowedCount() + 1);
+        // 更新用户信息
+        updateById(targetUser);
+        updateById(currentUser);
+        log.info("关注用户成功: userId={}, currentUserId={}", userId, currentUserId);
     }
 
+    @Transactional
     @Override
     public void unfollowUser(Long userId) {
         log.info("取消关注用户: userId={}", userId);
@@ -223,34 +267,49 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
 
-        // TODO: 实现取消关注用户逻辑
-        // 1. 检查是否已关注该用户
-        // 2. 删除关注记录
-        log.warn("取消关注用户功能暂未实现");
+        if (currentUserId.equals(userId)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "不能取消关注自己");
+        }
+
+        // 检查是否关注该用户
+        boolean isFollowed = userFollowsService.lambdaQuery()
+                .eq(UserFollows::getFolloweeId, userId)
+                .eq(UserFollows::getFollowerId, currentUserId)
+                .exists();
+        if (!isFollowed) {
+            throw new BusinessException(ErrorCode.USER_ALREADY_UNFOLLOWED);
+        }
+
+        // 删除关注记录
+        userFollowsService.remove(new LambdaQueryWrapper<UserFollows>()
+                .eq(UserFollows::getFolloweeId, userId)
+                .eq(UserFollows::getFollowerId, currentUserId));
+
+        // 更新关注者数量和被关注者粉丝数量
+        Users targetUser = getById(userId);
+        targetUser.setFollowerCount(targetUser.getFollowerCount() - 1);
+        Users currentUser = getById(currentUserId);
+        currentUser.setFollowedCount(currentUser.getFollowedCount() - 1);
+        // 更新用户信息
+        updateById(targetUser);
+        updateById(currentUser);
+        log.info("取消关注用户成功: userId={}, currentUserId={}", userId, currentUserId);
     }
 
     @Override
     public List<UserSummary> getUserFollowing(Long userId, Integer page, Integer limit) {
         log.info("获取用户关注列表: userId={}, page={}, limit={}", userId, page, limit);
 
-        // TODO: 实现获取关注列表逻辑
-        // 1. 从 user_follows 表查询该用户关注的用户列表
-        // 2. 分页查询
-        // 3. 转换为 UserSummary VO
-        log.warn("获取用户关注列表功能暂未实现");
-        return List.of();
+        List<UserSummary> userSummaries = userFollowsService.getUserFollowing(userId, (page - 1) * limit, limit);
+        return userSummaries;
     }
 
     @Override
     public List<UserSummary> getUserFollowers(Long userId, Integer page, Integer limit) {
         log.info("获取用户粉丝列表: userId={}, page={}, limit={}", userId, page, limit);
 
-        // TODO: 实现获取粉丝列表逻辑
-        // 1. 从 user_follows 表查询关注该用户的用户列表
-        // 2. 分页查询
-        // 3. 转换为 UserSummary VO
-        log.warn("获取用户粉丝列表功能暂未实现");
-        return List.of();
+        List<UserSummary> userSummaries = userFollowsService.getUserFollowers(userId, (page - 1) * limit, limit);
+        return userSummaries;
     }
 
     @Override
@@ -260,14 +319,64 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
         if (currentUserId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
-
-        // TODO: 实现获取浏览历史逻辑
         // 1. 从 view_histories 表查询该用户的浏览记录
-        // 2. 关联 resources、knowledge_bases、users 表获取完整信息
-        // 3. 分页查询，按浏览时间倒序
-        // 4. 转换为 ActivityRecord VO
-        log.warn("获取用户浏览历史功能暂未实现");
-        return List.of();
+        List<ViewHistories> viewHistories = viewHistoriesService.page(new Page<>(page, limit),
+                new LambdaQueryWrapper<ViewHistories>()
+                        .eq(ViewHistories::getUserId, currentUserId)
+                        .orderByDesc(ViewHistories::getLastViewAt))
+                .getRecords();
+
+        // 2. 转换为 ActivityRecord VO
+        List<ActivityRecord> activityRecords = viewHistories.stream()
+                .map(viewHistory -> {
+                    ActivityRecord activityRecord = new ActivityRecord();
+                    activityRecord.setResourceId(viewHistory.getResourceId());
+                    activityRecord.setActionAt(viewHistory.getLastViewAt());
+                    return activityRecord;
+                })
+                .collect(Collectors.toList());
+        // 3. 关联 resources、knowledge_bases、users 表获取完整信息
+        // 资源id列表
+        List<Long> resourceIds = activityRecords.stream()
+                .map(ActivityRecord::getResourceId)
+                .collect(Collectors.toList());
+        // 资源列表
+        List<Resources> resources = resourceService.listByIds(resourceIds);
+        // 资源id与资源映射,用于快速查找资源
+        Map<Long, Resources> resourceMap = resources.stream()
+                .collect(Collectors.toMap(Resources::getId, Function.identity()));
+        // 知识库id列表
+        List<Long> knowledgeBaseIds = resources.stream()
+                .map(Resources::getKnowledgeBaseId)
+                .collect(Collectors.toList());
+        // 知识库列表
+        List<KnowledgeBases> knowledgeBases = knowledgeBaseService.listByIds(knowledgeBaseIds);
+        // 知识库id与知识库映射,用于快速查找知识库
+        Map<Long, KnowledgeBases> knowledgeBaseMap = knowledgeBases.stream()
+                .collect(Collectors.toMap(KnowledgeBases::getId, Function.identity()));
+
+        // 作者id列表
+        List<Long> userIds = resources.stream()
+                .map(Resources::getUserId)
+                .collect(Collectors.toList());
+        // 作者列表
+        List<Users> users = listByIds(userIds);
+        // 作者id与作者映射,用于快速查找作者
+        Map<Long, Users> userMap = users.stream()
+                .collect(Collectors.toMap(Users::getId, Function.identity()));
+        // 填充信息
+        activityRecords.forEach(activityRecord -> {
+            Resources resource = resourceMap.get(activityRecord.getResourceId());
+            if (resource != null) {
+                activityRecord.setResourceTitle(resource.getTitle());
+                activityRecord.setResourceType(resource.getType());
+                activityRecord.setKbId(resource.getKnowledgeBaseId());
+                activityRecord.setKbName(knowledgeBaseMap.get(resource.getKnowledgeBaseId()).getName());
+                activityRecord.setAuthorId(resource.getUserId());
+                activityRecord.setAuthorName(userMap.get(resource.getUserId()).getNickname());
+            }
+        });
+        return activityRecords;
     }
 
     @Override
@@ -277,14 +386,8 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
         if (currentUserId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
-
-        // TODO: 实现获取点赞历史逻辑
-        // 1. 从 likes 表查询该用户的点赞记录
-        // 2. 关联 resources、knowledge_bases、users 表获取完整信息
-        // 3. 分页查询，按点赞时间倒序
-        // 4. 转换为 ActivityRecord VO
-        log.warn("获取用户点赞历史功能暂未实现");
-        return List.of();
+        List<ActivityRecord> activityRecords = likesMapper.likeHistory(currentUserId, (page - 1) * limit, limit);
+        return activityRecords;
     }
 
     @Override
@@ -295,12 +398,7 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
 
-        // TODO: 实现获取评论历史逻辑
-        // 1. 从 comments 表查询该用户的评论记录
-        // 2. 关联 resources、knowledge_bases、users 表获取完整信息
-        // 3. 分页查询，按评论时间倒序
-        // 4. 转换为 ActivityRecord VO
-        log.warn("获取用户评论历史功能暂未实现");
-        return List.of();
+        List<ActivityRecord> activityRecords = commentsMapper.commentHistory(currentUserId, (page - 1) * limit, limit);
+        return activityRecords;
     }
 }

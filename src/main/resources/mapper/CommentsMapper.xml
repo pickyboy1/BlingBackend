@@ -1,5 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.pickyboy.yuquebackend.mapper.CommentsMapper">
-
+    <select id="commentHistory" resultType="com.pickyboy.yuquebackend.domain.vo.user.ActivityRecord">
+        SELECT
+            c.resource_id AS resourceId,
+            r.title AS resourceTitle,
+            r.type AS resourceType,
+            kb.id AS kbId,
+            kb.name AS kbName,
+            u.id AS authorId,
+            u.nickname AS authorName,
+            c.created_at AS actionAt
+        FROM comments as c JOIN resources as r ON c.resource_id = r.id
+            JOIN knowledge_bases as kb ON r.knowledge_base_id = kb.id
+            JOIN users as u ON r.user_id = u.id
+        WHERE c.user_id = #{userId}
+        ORDER BY c.created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
 </mapper>

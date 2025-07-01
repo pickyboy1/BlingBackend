@@ -21,6 +21,8 @@ public enum ErrorCode {
     INVALID_REGISTER_TYPE(1006, "不支持的注册类型"),
     USER_DISABLED(1007, "用户已被禁用"),
     PASSWORD_TOO_WEAK(1008, "密码强度不够"),
+    USER_ALREADY_FOLLOWED(1009, "用户已关注"),
+    USER_ALREADY_UNFOLLOWED(1010, "用户未关注"),
 
     // 知识库相关错误码 (2000-2999)
     KNOWLEDGE_BASE_NOT_FOUND(2001, "知识库不存在"),
