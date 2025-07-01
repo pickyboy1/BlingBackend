@@ -2,6 +2,7 @@ package com.pickyboy.yuquebackend.service;
 
 import java.util.List;
 
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.pickyboy.yuquebackend.domain.dto.user.LoginRequest;
 import com.pickyboy.yuquebackend.domain.dto.user.RegisterRequest;
 import com.pickyboy.yuquebackend.domain.dto.user.UpdateUserRequest;
@@ -17,7 +18,7 @@ import com.pickyboy.yuquebackend.domain.vo.user.UserSummary;
  *
  * @author pickyboy
  */
-public interface IUserService {
+public interface IUserService  extends IService<Users> {
 
     /**
      * 用户注册

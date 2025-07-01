@@ -38,6 +38,9 @@ public enum ErrorCode {
     RESOURCE_COPY_FAILED(3005, "资源复制失败"),
     INVALID_RESOURCE_TYPE(3006, "无效的资源类型"),
     INVALID_REQUEST(3007, "无效的请求参数"),
+    RESOURCE_ALREADY_LIKED(3008, "资源已点赞"),
+    RESOURCE_ALREADY_UNLIKED(3009, "资源未点赞"),
+
     // 文件上传相关错误码 (4000-4999)
     FILE_UPLOAD_FAILED(4001, "文件上传失败"),
     FILE_SIZE_EXCEEDED(4002, "文件大小超出限制"),
@@ -49,7 +52,13 @@ public enum ErrorCode {
     OPERATION_NOT_ALLOWED(5001, "操作不被允许"),
     DATA_ALREADY_EXISTS(5002, "数据已存在"),
     DATA_CONFLICT(5003, "数据冲突"),
-    INSUFFICIENT_PERMISSIONS(5004, "权限不足");
+    INSUFFICIENT_PERMISSIONS(5004, "权限不足"),
+
+    // 评论相关错误码 (7000-7999)
+    COMMENT_NOT_FOUND(7001, "评论不存在"),
+    COMMENT_DELETE_FAILED(7002, "评论删除失败"),
+    COMMENT_ALREADY_LIKED(7006, "评论已点赞"),
+    COMMENT_ALREADY_UNLIKED(7007, "评论未点赞");
 
     private final int code;
     private final String message;

@@ -14,21 +14,30 @@ import com.pickyboy.yuquebackend.common.exception.BusinessException;
 import com.pickyboy.yuquebackend.common.exception.ErrorCode;
 import com.pickyboy.yuquebackend.common.utils.CurrentHolder;
 import com.pickyboy.yuquebackend.common.utils.MinioUtil;
+import com.pickyboy.yuquebackend.domain.dto.comment.CommentCreateRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.CopyResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.CreateResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.MoveResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceContentRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceInfoRequest;
 import com.pickyboy.yuquebackend.domain.entity.KnowledgeBases;
+import com.pickyboy.yuquebackend.domain.entity.Likes;
 import com.pickyboy.yuquebackend.domain.entity.Resources;
 import com.pickyboy.yuquebackend.domain.entity.ViewHistories;
+import com.pickyboy.yuquebackend.domain.vo.comment.RootCommentVO;
+import com.pickyboy.yuquebackend.domain.vo.comment.SubCommentVO;
 import com.pickyboy.yuquebackend.domain.vo.resource.PublicResourceVO;
 import com.pickyboy.yuquebackend.domain.vo.resource.ShareUrlVO;
 import com.pickyboy.yuquebackend.mapper.ResourcesMapper;
 import com.pickyboy.yuquebackend.mapper.ViewHistoriesMapper;
+import com.pickyboy.yuquebackend.service.ICommentsService;
 import com.pickyboy.yuquebackend.service.IKnowledgeBaseService;
+import com.pickyboy.yuquebackend.service.ILikesService;
 import com.pickyboy.yuquebackend.service.IResourceService;
 import com.pickyboy.yuquebackend.service.IResourceVersionsService;
+import com.pickyboy.yuquebackend.domain.entity.Comments;
+import com.pickyboy.yuquebackend.domain.entity.Users;
+import com.pickyboy.yuquebackend.service.IUserService;
 
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -48,7 +57,9 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
     private final IKnowledgeBaseService knowledgeBaseService;
     private final MinioUtil minioUtil;
     private final ViewHistoriesMapper viewHistoriesMapper;
-
+    private final ILikesService likesService;
+    private final ICommentsService commentsService;
+    private final IUserService userService;
     /* 在知识库中新建资源
      * 只新建资源记录,无实际内容
      */
@@ -520,6 +531,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         }
     }
 
+    // todo:
     @Override
     public ShareUrlVO generateResourceShareLink(Long resId) {
         log.info("生成资源分享链接: resId={}", resId);
@@ -535,31 +547,180 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
     @Override
     public void likeArticle(Long articleId) {
         log.info("点赞文章: articleId={}", articleId);
-        throw new UnsupportedOperationException("此方法尚未实现");
+        Long userId = CurrentHolder.getCurrentUserId();
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        Resources resource = getById(articleId);
+        if (resource == null) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
+        }
+        // 查询是否已点赞
+        Likes like = likesService.getOne(new LambdaQueryWrapper<Likes>()
+            .eq(Likes::getUserId, userId)
+            .eq(Likes::getResourceId, articleId)
+        );
+        if (like != null) {
+            throw new BusinessException(ErrorCode.RESOURCE_ALREADY_LIKED);
+        }
+        // 点赞
+        Likes newLike = new Likes();
+        newLike.setUserId(userId);
+        newLike.setResourceId(articleId);
+        likesService.save(newLike);
+        resource.setLikeCount(resource.getLikeCount() + 1);
+        updateById(resource);
+
+        // todo: 触发计分,用于推荐系统
     }
 
     @Override
     public void unlikeArticle(Long articleId) {
         log.info("取消点赞文章: articleId={}", articleId);
-        throw new UnsupportedOperationException("此方法尚未实现");
+        Long userId = CurrentHolder.getCurrentUserId();
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        Resources resource = getById(articleId);
+        if (resource == null) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
+        }
+        Likes like = likesService.getOne(new LambdaQueryWrapper<Likes>()
+            .eq(Likes::getUserId, userId)
+            .eq(Likes::getResourceId, articleId)
+        );
+        if (like == null) {
+            throw new BusinessException(ErrorCode.RESOURCE_ALREADY_UNLIKED);
+        }
+        likesService.removeById(like.getId());
+        resource.setLikeCount(resource.getLikeCount() - 1);
+        updateById(resource);
+
+        // todo: 触发计分,用于推荐系统
     }
 
     @Override
-    public List<?> listArticleComments(Long articleId) {
-        log.info("获取文章评论列表: articleId={}", articleId);
-        throw new UnsupportedOperationException("此方法尚未实现");
+    public List<RootCommentVO> listArticleComments(Long articleId, Integer page, Integer limit) {
+        log.info("获取文章根评论列表: articleId={}, page={}, limit={}", articleId, page, limit);
+        Long userId = CurrentHolder.getCurrentUserId();
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        Resources resource = getById(articleId);
+        if (resource == null) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
+        }
+        if (resource.getVisibility() == 0 && !resource.getUserId().equals(userId)) {
+            throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED);
+        }
+        // 查询根评论(preId为null)
+        List<RootCommentVO> comments = commentsService.listRootComments(articleId, (page - 1) * limit, limit);
+        return comments;
     }
 
     @Override
-    public Object createComment(Long articleId, Object commentRequest) {
-        log.info("发表评论: articleId={}", articleId);
-        throw new UnsupportedOperationException("此方法尚未实现");
+    public List<SubCommentVO> listCommentReplies(Long commentId, Integer page, Integer limit) {
+        log.info("获取评论回复列表: commentId={}, page={}, limit={}", commentId, page, limit);
+        Long userId = CurrentHolder.getCurrentUserId();
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        // 直接查询,父评论删除不影响子评论
+        List<SubCommentVO> comments = commentsService.listSubComments(commentId, (page - 1) * limit, limit);
+        return comments;
+    }
+
+    @Override
+    public RootCommentVO createComment(Long articleId, CommentCreateRequest commentRequest) {
+        log.info("发表评论: articleId={}, request={}", articleId, commentRequest);
+        Long userId = CurrentHolder.getCurrentUserId();
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        // 1. 验证文章是否存在
+        Resources resource = getById(articleId);
+        if (resource == null) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
+        }
+        if (resource.getVisibility() == 0 && !resource.getUserId().equals(userId)) {
+            throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED);
+        }
+
+        // 2. 构造评论
+        Comments comment = new Comments();
+        comment.setResourceId(articleId);
+        comment.setUserId(userId);
+        comment.setContent(commentRequest.getContent());
+        comment.setPreId(commentRequest.getParentId());
+        if (commentRequest.getParentId() != null) {
+            Comments preComment = commentsService.getById(commentRequest.getParentId());
+            if (preComment == null) {
+                throw new BusinessException(ErrorCode.COMMENT_NOT_FOUND);
+            }
+            comment.setRootId(preComment.getRootId() == null ? preComment.getId() : preComment.getRootId());
+            preComment.setReplyCount(preComment.getReplyCount() + 1);
+            if(preComment.getRootId() != null) {
+                Comments rootComment = commentsService.getById(preComment.getRootId());
+                if (rootComment != null) {
+                rootComment.setReplyCount(rootComment.getReplyCount() + 1);
+                commentsService.updateById(rootComment);
+                }
+            }
+            commentsService.updateById(preComment);
+        }
+        commentsService.save(comment);
+        resource.setCommentCount(resource.getCommentCount() + 1);
+        updateById(resource);
+        RootCommentVO rootCommentVO = new RootCommentVO();
+        rootCommentVO.setId(comment.getId());
+        rootCommentVO.setContent(comment.getContent());
+        rootCommentVO.setCreatedAt(comment.getCreatedAt());
+        rootCommentVO.setUserId(comment.getUserId());
+        rootCommentVO.setReplyCount(comment.getReplyCount());
+        rootCommentVO.setStatus(comment.getStatus());
+        Users user = userService.getById(comment.getUserId());
+        rootCommentVO.setNickname(user.getNickname());
+        rootCommentVO.setAvatarUrl(user.getAvatarUrl());
+        return rootCommentVO;
+
     }
 
     @Override
     public void deleteComment(Long commentId) {
         log.info("删除评论: commentId={}", commentId);
-        throw new UnsupportedOperationException("此方法尚未实现");
+        Long userId = CurrentHolder.getCurrentUserId();
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        Comments comment = commentsService.getById(commentId);
+        if (comment == null) {
+            throw new BusinessException(ErrorCode.COMMENT_NOT_FOUND);
+        }
+        if (comment.getUserId().equals(userId)) {
+            Resources resource = getById(comment.getResourceId());
+            if (resource != null) {
+                resource.setCommentCount(resource.getCommentCount() - 1);
+                updateById(resource);
+            }
+            if (comment.getPreId() != null) {
+                Comments preComment = commentsService.getById(comment.getPreId());
+                if (preComment != null) {
+                    preComment.setReplyCount(preComment.getReplyCount() - 1);
+                    commentsService.updateById(preComment);
+                }
+            }
+            if (comment.getRootId() != null&&!comment.getRootId().equals(comment.getId())) {
+                Comments rootComment = commentsService.getById(comment.getRootId());
+                if (rootComment != null) {
+                    rootComment.setReplyCount(rootComment.getReplyCount() - 1);
+                    commentsService.updateById(rootComment);
+                }
+            }
+            commentsService.removeById(commentId);
+
+        } else {
+            throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED);
+        }
     }
 
     @Override

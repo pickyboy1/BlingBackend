@@ -6,6 +6,8 @@ import org.apache.ibatis.annotations.Param;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.pickyboy.yuquebackend.domain.entity.Comments;
+import com.pickyboy.yuquebackend.domain.vo.comment.RootCommentVO;
+import com.pickyboy.yuquebackend.domain.vo.comment.SubCommentVO;
 import com.pickyboy.yuquebackend.domain.vo.user.ActivityRecord;
 
 /**
@@ -18,5 +20,8 @@ import com.pickyboy.yuquebackend.domain.vo.user.ActivityRecord;
  */
 public interface CommentsMapper extends BaseMapper<Comments> {
     List<ActivityRecord> commentHistory(@Param("userId") Long userId, @Param("offset") Integer offset, @Param("limit") Integer limit);
+
+    List<RootCommentVO> listRootComments(@Param("articleId") Long articleId, @Param("offset") Integer offset, @Param("limit") Integer limit);
+    List<SubCommentVO> listSubComments(@Param("commentId") Long commentId, @Param("offset") Integer offset, @Param("limit") Integer limit);
 
 }

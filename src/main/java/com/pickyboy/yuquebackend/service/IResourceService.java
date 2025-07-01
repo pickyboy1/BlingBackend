@@ -3,12 +3,15 @@ package com.pickyboy.yuquebackend.service;
 import java.util.List;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.pickyboy.yuquebackend.domain.dto.comment.CommentCreateRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.CopyResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.CreateResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.MoveResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceContentRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceInfoRequest;
 import com.pickyboy.yuquebackend.domain.entity.Resources;
+import com.pickyboy.yuquebackend.domain.vo.comment.RootCommentVO;
+import com.pickyboy.yuquebackend.domain.vo.comment.SubCommentVO;
 import com.pickyboy.yuquebackend.domain.vo.resource.PublicResourceVO;
 import com.pickyboy.yuquebackend.domain.vo.resource.ShareUrlVO;
 
@@ -145,12 +148,24 @@ public interface IResourceService extends IService<Resources> {
     void unlikeArticle(Long articleId);
 
     /**
-     * 获取文章的评论列表
+     * 获取文章的根评论列表
      *
      * @param articleId 文章ID
-     * @return 评论列表
+     * @param page 页码
+     * @param limit 每页数量
+     * @return 根评论列表
      */
-    List<?> listArticleComments(Long articleId);
+    List<RootCommentVO> listArticleComments(Long articleId, Integer page, Integer limit);
+
+    /**
+     * 获取评论的子评论列表
+     *
+     * @param commentId 评论ID
+     * @param page 页码
+     * @param limit 每页数量
+     * @return 子评论列表
+     */
+    List<SubCommentVO> listCommentReplies(Long commentId, Integer page, Integer limit);
 
     /**
      * 发表评论
@@ -159,7 +174,7 @@ public interface IResourceService extends IService<Resources> {
      * @param commentRequest 评论请求
      * @return 评论信息
      */
-    Object createComment(Long articleId, Object commentRequest);
+    RootCommentVO createComment(Long articleId, CommentCreateRequest commentRequest);
 
     /**
      * 删除评论
