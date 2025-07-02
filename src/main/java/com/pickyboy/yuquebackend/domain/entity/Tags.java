@@ -40,6 +40,11 @@ public class Tags implements Serializable {
      */
     private String name;
 
+    /**
+     * 标签被引用数
+     */
+    private Integer referedCount;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;

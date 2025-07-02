@@ -47,7 +47,11 @@ public enum ErrorCode {
     OPERATION_NOT_ALLOWED(5001, "操作不被允许"),
     DATA_ALREADY_EXISTS(5002, "数据已存在"),
     DATA_CONFLICT(5003, "数据冲突"),
-    INSUFFICIENT_PERMISSIONS(5004, "权限不足");
+    INSUFFICIENT_PERMISSIONS(5004, "权限不足"),
+
+    // 标签及小记相关错误码 (6000-6999)
+    TAG_NAME_DUPLICATE(6001,"标签名已存在");
+
 
     private final int code;
     private final String message;
