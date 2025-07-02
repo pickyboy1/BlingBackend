@@ -10,6 +10,7 @@ import com.pickyboy.yuquebackend.domain.entity.KnowledgeBases;
 import com.pickyboy.yuquebackend.domain.entity.Users;
 import com.pickyboy.yuquebackend.domain.vo.user.ActivityRecord;
 import com.pickyboy.yuquebackend.domain.vo.user.AuthResponse;
+import com.pickyboy.yuquebackend.domain.vo.user.UserProfileVO;
 import com.pickyboy.yuquebackend.domain.vo.user.UserPublicProfile;
 import com.pickyboy.yuquebackend.domain.vo.user.UserSummary;
 
@@ -18,7 +19,7 @@ import com.pickyboy.yuquebackend.domain.vo.user.UserSummary;
  *
  * @author pickyboy
  */
-public interface IUserService  extends IService<Users> {
+public interface IUserService extends IService<Users> {
 
     /**
      * 用户注册
@@ -39,17 +40,17 @@ public interface IUserService  extends IService<Users> {
     /**
      * 获取当前用户信息
      *
-     * @return 用户信息
+     * @return 用户信息（安全版本，不包含敏感数据）
      */
-    Users getCurrentUser();
+    UserProfileVO getCurrentUser();
 
     /**
      * 更新当前用户信息
      *
      * @param updateRequest 更新请求
-     * @return 更新后的用户信息
+     * @return 更新后的用户信息（安全版本，不包含敏感数据）
      */
-    Users updateCurrentUser(UpdateUserRequest updateRequest);
+    UserProfileVO updateCurrentUser(UpdateUserRequest updateRequest);
 
     /**
      * 获取指定用户的公开信息

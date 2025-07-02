@@ -1,5 +1,6 @@
 package com.pickyboy.yuquebackend.service.impl;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ import com.pickyboy.yuquebackend.domain.entity.UserFollows;
 import com.pickyboy.yuquebackend.domain.entity.Users;
 import com.pickyboy.yuquebackend.domain.vo.user.ActivityRecord;
 import com.pickyboy.yuquebackend.domain.vo.user.AuthResponse;
+import com.pickyboy.yuquebackend.domain.vo.user.UserProfileVO;
 import com.pickyboy.yuquebackend.domain.vo.user.UserPublicProfile;
 import com.pickyboy.yuquebackend.domain.vo.user.UserSummary;
 import com.pickyboy.yuquebackend.mapper.CommentsMapper;
@@ -117,12 +119,16 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
 
         AuthResponse response = new AuthResponse(token, user.getUsername(), user.getNickname(), user.getAvatarUrl());
 
+        // 更新用户最后登录时间
+        user.setLastLogin(LocalDateTime.now());
+        updateById(user);
+
         log.info("用户登录成功: userId={}", user.getId());
         return response;
     }
 
     @Override
-    public Users getCurrentUser() {
+    public UserProfileVO getCurrentUser() {
         Long currentUserId = CurrentHolder.getCurrentUserId();
         if (currentUserId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
@@ -133,12 +139,12 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
 
-        return user;
+        return convertToUserProfileVO(user);
     }
 
     @Override
     @Transactional
-    public Users updateCurrentUser(UpdateUserRequest updateRequest) {
+    public UserProfileVO updateCurrentUser(UpdateUserRequest updateRequest) {
         Long currentUserId = CurrentHolder.getCurrentUserId();
         if (currentUserId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
@@ -167,7 +173,31 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
         }
 
         updateById(user);
-        return user;
+        return convertToUserProfileVO(user);
+    }
+
+    /**
+     * 将Users实体转换为UserProfileVO（安全版本，不包含敏感数据）
+     *
+     * @param user Users实体
+     * @return UserProfileVO
+     */
+    private UserProfileVO convertToUserProfileVO(Users user) {
+        UserProfileVO userProfileVO = new UserProfileVO();
+        userProfileVO.setId(user.getId());
+        userProfileVO.setUsername(user.getUsername());
+        userProfileVO.setNickname(user.getNickname());
+        userProfileVO.setPhone(user.getPhone());
+        userProfileVO.setAvatarUrl(user.getAvatarUrl());
+        userProfileVO.setDescription(user.getDescription());
+        userProfileVO.setLocation(user.getLocation());
+        userProfileVO.setField(user.getField());
+        userProfileVO.setFollowerCount(user.getFollowerCount());
+        userProfileVO.setFollowedCount(user.getFollowedCount());
+        userProfileVO.setLastLogin(user.getLastLogin());
+        userProfileVO.setCreatedAt(user.getCreatedAt());
+        userProfileVO.setUpdatedAt(user.getUpdatedAt());
+        return userProfileVO;
     }
 
     @Override

@@ -17,9 +17,9 @@ import com.pickyboy.yuquebackend.domain.dto.user.LoginRequest;
 import com.pickyboy.yuquebackend.domain.dto.user.RegisterRequest;
 import com.pickyboy.yuquebackend.domain.dto.user.UpdateUserRequest;
 import com.pickyboy.yuquebackend.domain.entity.KnowledgeBases;
-import com.pickyboy.yuquebackend.domain.entity.Users;
 import com.pickyboy.yuquebackend.domain.vo.user.ActivityRecord;
 import com.pickyboy.yuquebackend.domain.vo.user.AuthResponse;
+import com.pickyboy.yuquebackend.domain.vo.user.UserProfileVO;
 import com.pickyboy.yuquebackend.domain.vo.user.UserPublicProfile;
 import com.pickyboy.yuquebackend.domain.vo.user.UserSummary;
 import com.pickyboy.yuquebackend.service.IKnowledgeBaseService;
@@ -76,12 +76,12 @@ public class UserController {
      * 获取当前登录用户信息
      * GET /user/profile
      *
-     * @return 当前用户信息
+     * @return 当前用户信息（安全版本，不包含敏感数据）
      */
     @GetMapping("/user/profile")
-    public Result<Users> getCurrentUser() {
+    public Result<UserProfileVO> getCurrentUser() {
         log.info("获取当前用户信息");
-        Users user = userService.getCurrentUser();
+        UserProfileVO user = userService.getCurrentUser();
         return Result.success(user);
     }
 
@@ -90,12 +90,12 @@ public class UserController {
      * PUT /user/profile
      *
      * @param updateRequest 更新请求
-     * @return 更新后的用户信息
+     * @return 更新后的用户信息（安全版本，不包含敏感数据）
      */
     @PutMapping("/user/profile")
-    public Result<Users> updateCurrentUser(@Valid @RequestBody UpdateUserRequest updateRequest) {
+    public Result<UserProfileVO> updateCurrentUser(@Valid @RequestBody UpdateUserRequest updateRequest) {
         log.info("更新当前用户信息");
-        Users user = userService.updateCurrentUser(updateRequest);
+        UserProfileVO user = userService.updateCurrentUser(updateRequest);
         return Result.success(user);
     }
 
