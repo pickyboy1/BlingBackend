@@ -34,6 +34,7 @@ import com.pickyboy.yuquebackend.domain.vo.comment.RootCommentVO;
 import com.pickyboy.yuquebackend.domain.vo.comment.SubCommentVO;
 import com.pickyboy.yuquebackend.domain.vo.resource.PublicResourceVO;
 import com.pickyboy.yuquebackend.domain.vo.resource.ShareUrlVO;
+import com.pickyboy.yuquebackend.mapper.CommentsMapper;
 import com.pickyboy.yuquebackend.mapper.ResourcesMapper;
 import com.pickyboy.yuquebackend.mapper.UsersMapper;
 import com.pickyboy.yuquebackend.mapper.ViewHistoriesMapper;
@@ -63,6 +64,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
     private final ViewHistoriesMapper viewHistoriesMapper;
     private final ILikesService likesService;
     private final ICommentsService commentsService;
+    private final CommentsMapper commentsMapper;
     private final UsersMapper usersMapper;
     /* 在知识库中新建资源
      * 只新建资源记录,无实际内容
@@ -105,12 +107,10 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         // 异步记录浏览历史
         recordViewHistoryAsync(userId, resId);
 
-        // 【性能优化建议】访问量更新优化：
+        // 【修复并发问题+性能优化】原子操作更新访问量
         // TODO: 使用Redis缓存访问量，按时间窗口去重，减少数据库更新频率
         // TODO: 批量更新访问量，例如每5分钟批量写入一次数据库
-        // TODO: 使用分布式锁防止并发访问时的数据不一致
-        resource.setViewCount(resource.getViewCount() + 1);
-        updateById(resource);
+        baseMapper.incrementViewCount(resId);
         return resource;
     }
 
@@ -658,8 +658,9 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         newLike.setUserId(userId);
         newLike.setResourceId(articleId);
         likesService.save(newLike);
-        resource.setLikeCount(resource.getLikeCount() + 1);
-        updateById(resource);
+
+        // 【修复并发问题】原子操作增加资源点赞数
+        baseMapper.incrementLikeCount(articleId);
 
         // todo: 触发计分,用于推荐系统
     }
@@ -685,8 +686,9 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
             throw new BusinessException(ErrorCode.RESOURCE_ALREADY_UNLIKED);
         }
         likesService.removeById(like.getId());
-        resource.setLikeCount(resource.getLikeCount() - 1);
-        updateById(resource);
+
+        // 【修复并发问题】原子操作减少资源点赞数
+        baseMapper.decrementLikeCount(articleId);
 
         // todo: 触发计分,用于推荐系统
     }
@@ -764,19 +766,19 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
                 throw new BusinessException(ErrorCode.COMMENT_NOT_FOUND);
             }
             comment.setRootId(preComment.getRootId() == null ? preComment.getId() : preComment.getRootId());
-            preComment.setReplyCount(preComment.getReplyCount() + 1);
+
+                        // 【修复并发问题】原子操作增加父评论回复数
+            commentsMapper.incrementReplyCount(preComment.getId());
+
+            // 如果有根评论且不是同一个评论，也要增加根评论的回复数
             if(preComment.getRootId() != null) {
-                Comments rootComment = commentsService.getById(preComment.getRootId());
-                if (rootComment != null) {
-                rootComment.setReplyCount(rootComment.getReplyCount() + 1);
-                commentsService.updateById(rootComment);
-                }
+                commentsMapper.incrementReplyCount(preComment.getRootId());
             }
-            commentsService.updateById(preComment);
         }
         commentsService.save(comment);
-        resource.setCommentCount(resource.getCommentCount() + 1);
-        updateById(resource);
+
+        // 【修复并发问题】原子操作增加资源评论数
+        baseMapper.incrementCommentCount(articleId);
         RootCommentVO rootCommentVO = new RootCommentVO();
         rootCommentVO.setId(comment.getId());
         rootCommentVO.setContent(comment.getContent());
@@ -818,24 +820,15 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
             throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "评论对应的资源不存在、其知识库已被删除或无访问权限");
         }
 
-        // 更新资源评论计数
-        resource.setCommentCount(resource.getCommentCount() - 1);
-        updateById(resource);
+        // 【修复并发问题】原子操作减少资源评论计数
+        baseMapper.decrementCommentCount(comment.getResourceId());
 
-        // 更新评论计数
+        // 【修复并发问题】原子操作更新评论回复计数
         if (comment.getPreId() != null) {
-            Comments preComment = commentsService.getById(comment.getPreId());
-            if (preComment != null) {
-                preComment.setReplyCount(preComment.getReplyCount() - 1);
-                commentsService.updateById(preComment);
-            }
+            commentsMapper.decrementReplyCount(comment.getPreId());
         }
         if (comment.getRootId() != null && !comment.getRootId().equals(comment.getId())) {
-            Comments rootComment = commentsService.getById(comment.getRootId());
-            if (rootComment != null) {
-                rootComment.setReplyCount(rootComment.getReplyCount() - 1);
-                commentsService.updateById(rootComment);
-            }
+            commentsMapper.decrementReplyCount(comment.getRootId());
         }
         commentsService.removeById(commentId);
     }

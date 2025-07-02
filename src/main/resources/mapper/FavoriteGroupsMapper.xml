@@ -2,4 +2,18 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.pickyboy.yuquebackend.mapper.FavoriteGroupsMapper">
 
+    <!-- 原子增加分组计数 -->
+    <update id="incrementGroupCount">
+        UPDATE favorite_groups
+        SET count = count + 1
+        WHERE id = #{groupId}
+    </update>
+
+    <!-- 原子减少分组计数 -->
+    <update id="decrementGroupCount">
+        UPDATE favorite_groups
+        SET count = GREATEST(0, count - 1)
+        WHERE id = #{groupId}
+    </update>
+
 </mapper>

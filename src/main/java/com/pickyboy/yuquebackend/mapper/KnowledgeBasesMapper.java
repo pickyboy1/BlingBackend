@@ -1,7 +1,9 @@
 package com.pickyboy.yuquebackend.mapper;
 
-import com.pickyboy.yuquebackend.domain.entity.KnowledgeBases;
+import org.apache.ibatis.annotations.Param;
+
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.pickyboy.yuquebackend.domain.entity.KnowledgeBases;
 
 /**
  * <p>
@@ -12,5 +14,14 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
  * @since 2025-06-25
  */
 public interface KnowledgeBasesMapper extends BaseMapper<KnowledgeBases> {
+
+    // ====== 【原子操作】计数器更新方法 ======
+
+    /**
+     * 原子增加知识库浏览量
+     * @param kbId 知识库ID
+     * @return 影响行数
+     */
+    int incrementViewCount(@Param("kbId") Long kbId);
 
 }

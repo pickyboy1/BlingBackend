@@ -250,13 +250,9 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
         userFollows.setFollowerId(currentUserId);
         userFollowsService.save(userFollows);
 
-        // 更新关注者数量和被关注者粉丝数量
-        targetUser.setFollowerCount(targetUser.getFollowerCount() + 1);
-        Users currentUser = getById(currentUserId);
-        currentUser.setFollowedCount(currentUser.getFollowedCount() + 1);
-        // 更新用户信息
-        updateById(targetUser);
-        updateById(currentUser);
+        // 【修复并发问题】原子操作更新关注者数量和被关注者粉丝数量
+        baseMapper.incrementFollowerCount(userId);
+        baseMapper.incrementFollowedCount(currentUserId);
         log.info("关注用户成功: userId={}, currentUserId={}", userId, currentUserId);
     }
 
@@ -287,14 +283,9 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
                 .eq(UserFollows::getFolloweeId, userId)
                 .eq(UserFollows::getFollowerId, currentUserId));
 
-        // 更新关注者数量和被关注者粉丝数量
-        Users targetUser = getById(userId);
-        targetUser.setFollowerCount(targetUser.getFollowerCount() - 1);
-        Users currentUser = getById(currentUserId);
-        currentUser.setFollowedCount(currentUser.getFollowedCount() - 1);
-        // 更新用户信息
-        updateById(targetUser);
-        updateById(currentUser);
+        // 【修复并发问题】原子操作更新关注者数量和被关注者粉丝数量
+        baseMapper.decrementFollowerCount(userId);
+        baseMapper.decrementFollowedCount(currentUserId);
         log.info("取消关注用户成功: userId={}, currentUserId={}", userId, currentUserId);
     }
 

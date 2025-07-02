@@ -175,11 +175,10 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBasesMapper, 
         }
 
         if(currentUserId != null){
-            // 增加访问量
+            // 【修复并发问题】原子操作增加访问量
             // 不需要过滤用户自身,方便测试,实现过滤功能后,也可以防止用户自己刷访问量
             // todo: 使用Redis缓存访问量,根据时间窗口,过滤掉重复访问
-            knowledgeBase.setViewCount(knowledgeBase.getViewCount() + 1);
-            updateById(knowledgeBase);
+            baseMapper.incrementViewCount(kbId);
             // 不回显shareId
             knowledgeBase.setShareId(null);
         }

@@ -14,7 +14,6 @@ import com.pickyboy.yuquebackend.domain.dto.collection.CollectionGroupCreateRequ
 import com.pickyboy.yuquebackend.domain.dto.collection.CollectionItemCreateRequest;
 import com.pickyboy.yuquebackend.domain.entity.FavoriteGroups;
 import com.pickyboy.yuquebackend.domain.entity.Favorites;
-import com.pickyboy.yuquebackend.domain.entity.Resources;
 import com.pickyboy.yuquebackend.domain.vo.collection.CollectionGroup;
 import com.pickyboy.yuquebackend.domain.vo.user.ActivityRecord;
 import com.pickyboy.yuquebackend.mapper.FavoriteGroupsMapper;
@@ -150,10 +149,11 @@ public class CollectionServiceImpl implements ICollectionService {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "收藏夹分组不存在");
         }
 
-        // 检查文章是否存在且可访问
-        Resources resource = resourceService.getById(request.getResourceId());
-        if (resource == null) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
+        // 【重构】检查文章是否存在且可访问（包括知识库权限验证）
+        try {
+            resourceService.getResourceById(request.getResourceId());
+        } catch (BusinessException e) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "资源不存在、无访问权限或其知识库已被删除");
         }
 
         // 检查是否已收藏
@@ -172,9 +172,8 @@ public class CollectionServiceImpl implements ICollectionService {
         favorite.setResourceId(request.getResourceId());
         favoritesMapper.insert(favorite);
 
-        // 更新分组收藏数量
-        favoriteGroup.setCount(favoriteGroup.getCount() + 1);
-        favoriteGroupsMapper.updateById(favoriteGroup);
+        // 【修复并发问题】原子操作增加分组收藏数量
+        favoriteGroupsMapper.incrementGroupCount(groupId);
 
         log.info("添加文章到收藏夹成功: groupId={}, resourceId={}", groupId, request.getResourceId());
     }
@@ -208,9 +207,8 @@ public class CollectionServiceImpl implements ICollectionService {
         // 删除收藏记录
         favoritesMapper.deleteById(favorite.getId());
 
-        // 更新分组收藏数量
-        favoriteGroup.setCount(Math.max(0, favoriteGroup.getCount() - 1));
-        favoriteGroupsMapper.updateById(favoriteGroup);
+        // 【修复并发问题】原子操作减少分组收藏数量
+        favoriteGroupsMapper.decrementGroupCount(groupId);
 
         log.info("从收藏夹移除文章成功: groupId={}, articleId={}", groupId, articleId);
     }

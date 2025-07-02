@@ -24,4 +24,20 @@ public interface CommentsMapper extends BaseMapper<Comments> {
     List<RootCommentVO> listRootComments(@Param("articleId") Long articleId, @Param("offset") Integer offset, @Param("limit") Integer limit);
     List<SubCommentVO> listSubComments(@Param("commentId") Long commentId, @Param("offset") Integer offset, @Param("limit") Integer limit);
 
+    // ====== 【原子操作】计数器更新方法 ======
+
+    /**
+     * 原子增加评论回复数
+     * @param commentId 评论ID
+     * @return 影响行数
+     */
+    int incrementReplyCount(@Param("commentId") Long commentId);
+
+    /**
+     * 原子减少评论回复数
+     * @param commentId 评论ID
+     * @return 影响行数
+     */
+    int decrementReplyCount(@Param("commentId") Long commentId);
+
 }

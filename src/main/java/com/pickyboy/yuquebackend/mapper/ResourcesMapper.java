@@ -85,4 +85,41 @@ public interface ResourcesMapper extends BaseMapper<Resources> {
      * @return 删除的记录数
      */
     int batchLogicalDelete(@Param("resourceIds") List<Long> resourceIds);
+
+    // ====== 【原子操作】计数器更新方法 ======
+
+    /**
+     * 原子增加资源浏览量
+     * @param resourceId 资源ID
+     * @return 影响行数
+     */
+    int incrementViewCount(@Param("resourceId") Long resourceId);
+
+    /**
+     * 原子增加资源点赞数
+     * @param resourceId 资源ID
+     * @return 影响行数
+     */
+    int incrementLikeCount(@Param("resourceId") Long resourceId);
+
+    /**
+     * 原子减少资源点赞数
+     * @param resourceId 资源ID
+     * @return 影响行数
+     */
+    int decrementLikeCount(@Param("resourceId") Long resourceId);
+
+    /**
+     * 原子增加资源评论数
+     * @param resourceId 资源ID
+     * @return 影响行数
+     */
+    int incrementCommentCount(@Param("resourceId") Long resourceId);
+
+    /**
+     * 原子减少资源评论数
+     * @param resourceId 资源ID
+     * @return 影响行数
+     */
+    int decrementCommentCount(@Param("resourceId") Long resourceId);
 }

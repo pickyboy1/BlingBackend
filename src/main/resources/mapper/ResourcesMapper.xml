@@ -119,4 +119,41 @@
         </foreach>
     </update>
 
+    <!-- ====== 【原子操作】计数器更新SQL ====== -->
+
+    <!-- 原子增加资源浏览量 -->
+    <update id="incrementViewCount">
+        UPDATE resources
+        SET view_count = view_count + 1
+        WHERE id = #{resourceId}
+    </update>
+
+    <!-- 原子增加资源点赞数 -->
+    <update id="incrementLikeCount">
+        UPDATE resources
+        SET like_count = like_count + 1
+        WHERE id = #{resourceId}
+    </update>
+
+    <!-- 原子减少资源点赞数 -->
+    <update id="decrementLikeCount">
+        UPDATE resources
+        SET like_count = GREATEST(0, like_count - 1)
+        WHERE id = #{resourceId}
+    </update>
+
+    <!-- 原子增加资源评论数 -->
+    <update id="incrementCommentCount">
+        UPDATE resources
+        SET comment_count = comment_count + 1
+        WHERE id = #{resourceId}
+    </update>
+
+    <!-- 原子减少资源评论数 -->
+    <update id="decrementCommentCount">
+        UPDATE resources
+        SET comment_count = GREATEST(0, comment_count - 1)
+        WHERE id = #{resourceId}
+    </update>
+
 </mapper>

@@ -89,4 +89,20 @@
         LIMIT #{limit} OFFSET #{offset}
     </select>
 
+    <!-- ====== 【原子操作】计数器更新SQL ====== -->
+
+    <!-- 原子增加评论回复数 -->
+    <update id="incrementReplyCount">
+        UPDATE comments
+        SET reply_count = reply_count + 1
+        WHERE id = #{commentId}
+    </update>
+
+    <!-- 原子减少评论回复数 -->
+    <update id="decrementReplyCount">
+        UPDATE comments
+        SET reply_count = GREATEST(0, reply_count - 1)
+        WHERE id = #{commentId}
+    </update>
+
 </mapper>

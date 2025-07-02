@@ -2,4 +2,34 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.pickyboy.yuquebackend.mapper.UsersMapper">
 
+    <!-- ====== 【原子操作】计数器更新SQL ====== -->
+
+    <!-- 原子增加用户粉丝数 -->
+    <update id="incrementFollowerCount">
+        UPDATE users
+        SET follower_count = follower_count + 1
+        WHERE id = #{userId}
+    </update>
+
+    <!-- 原子减少用户粉丝数 -->
+    <update id="decrementFollowerCount">
+        UPDATE users
+        SET follower_count = GREATEST(0, follower_count - 1)
+        WHERE id = #{userId}
+    </update>
+
+    <!-- 原子增加用户关注数 -->
+    <update id="incrementFollowedCount">
+        UPDATE users
+        SET followed_count = followed_count + 1
+        WHERE id = #{userId}
+    </update>
+
+    <!-- 原子减少用户关注数 -->
+    <update id="decrementFollowedCount">
+        UPDATE users
+        SET followed_count = GREATEST(0, followed_count - 1)
+        WHERE id = #{userId}
+    </update>
+
 </mapper>
