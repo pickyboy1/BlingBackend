@@ -12,6 +12,7 @@ public enum ErrorCode {
     FORBIDDEN_ERROR(403, "禁止访问"),
     SYSTEM_ERROR(500, "系统内部异常"),
 
+
     // 用户相关错误码 (1000-1999)
     USER_NOT_FOUND(1001, "用户不存在"),
     USERNAME_ALREADY_EXISTS(1002, "用户名已存在"),
@@ -21,6 +22,8 @@ public enum ErrorCode {
     INVALID_REGISTER_TYPE(1006, "不支持的注册类型"),
     USER_DISABLED(1007, "用户已被禁用"),
     PASSWORD_TOO_WEAK(1008, "密码强度不够"),
+    USER_ALREADY_FOLLOWED(1009, "用户已关注"),
+    USER_ALREADY_UNFOLLOWED(1010, "用户未关注"),
 
     // 知识库相关错误码 (2000-2999)
     KNOWLEDGE_BASE_NOT_FOUND(2001, "知识库不存在"),
@@ -36,6 +39,9 @@ public enum ErrorCode {
     RESOURCE_COPY_FAILED(3005, "资源复制失败"),
     INVALID_RESOURCE_TYPE(3006, "无效的资源类型"),
     INVALID_REQUEST(3007, "无效的请求参数"),
+    RESOURCE_ALREADY_LIKED(3008, "资源已点赞"),
+    RESOURCE_ALREADY_UNLIKED(3009, "资源未点赞"),
+
     // 文件上传相关错误码 (4000-4999)
     FILE_UPLOAD_FAILED(4001, "文件上传失败"),
     FILE_SIZE_EXCEEDED(4002, "文件大小超出限制"),
