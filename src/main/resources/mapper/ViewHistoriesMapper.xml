@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.pickyboy.yuquebackend.mapper.ViewHistoriesMapper">
+<mapper namespace="com.pickyboy.blingBackend.mapper.ViewHistoriesMapper">
 
-    <insert id="insertOrUpdateViewHistory" parameterType="com.pickyboy.yuquebackend.domain.entity.ViewHistories">
+    <insert id="insertOrUpdateViewHistory" parameterType="com.pickyboy.blingBackend.domain.entity.ViewHistories">
         INSERT INTO view_histories (user_id, resource_id, last_view_at)
         VALUES (#{userId}, #{resourceId}, #{lastViewAt})
         ON DUPLICATE KEY UPDATE
@@ -10,7 +10,7 @@
     </insert>
 
     <!-- 获取用户浏览历史 -->
-    <select id="getUserViewHistory" resultType="com.pickyboy.yuquebackend.domain.vo.user.ActivityRecord">
+    <select id="getUserViewHistory" resultType="com.pickyboy.blingBackend.domain.vo.user.ActivityRecord">
         SELECT
             vh.resource_id AS resourceId,
             r.title AS resourceTitle,

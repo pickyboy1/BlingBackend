@@ -9,10 +9,10 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.pickyboy</groupId>
-    <artifactId>YuQueBackend</artifactId>
+    <artifactId>bling-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>YuQueBackend</name>
-    <description>YuQueBackend</description>
+    <name>bling-backend</name>
+    <description>bling-backend</description>
     <url/>
     <licenses>
         <license/>

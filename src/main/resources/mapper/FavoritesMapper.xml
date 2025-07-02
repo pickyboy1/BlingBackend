@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.pickyboy.yuquebackend.mapper.FavoritesMapper">
+<mapper namespace="com.pickyboy.blingBackend.mapper.FavoritesMapper">
 
             <!-- 获取收藏夹分组下的文章列表 -->
-    <select id="getArticlesInGroup" resultType="com.pickyboy.yuquebackend.domain.vo.user.ActivityRecord">
+    <select id="getArticlesInGroup" resultType="com.pickyboy.blingBackend.domain.vo.user.ActivityRecord">
         SELECT
             r.id AS resourceId,
             r.title AS resourceTitle,

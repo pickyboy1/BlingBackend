@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.pickyboy.yuquebackend.mapper.ResourcesMapper">
+<mapper namespace="com.pickyboy.blingBackend.mapper.ResourcesMapper">
 
-    <select id="selectDeletedResourcesInActiveKbs" resultType="com.pickyboy.yuquebackend.domain.entity.Resources">
+    <select id="selectDeletedResourcesInActiveKbs" resultType="com.pickyboy.blingBackend.domain.entity.Resources">
         SELECT
             r.*
         FROM
@@ -17,7 +17,7 @@
             r.updated_at DESC
     </select>
 
-    <select id="selectResourceInActiveKb" resultType="com.pickyboy.yuquebackend.domain.entity.Resources">
+    <select id="selectResourceInActiveKb" resultType="com.pickyboy.blingBackend.domain.entity.Resources">
         SELECT
             r.*
         FROM
@@ -30,7 +30,7 @@
             AND kb.is_deleted = 0
     </select>
 
-    <select id="selectResourceInActiveKbWithUser" resultType="com.pickyboy.yuquebackend.domain.entity.Resources">
+    <select id="selectResourceInActiveKbWithUser" resultType="com.pickyboy.blingBackend.domain.entity.Resources">
         SELECT
             r.*
         FROM
@@ -49,7 +49,7 @@
             )
     </select>
 
-    <select id="selectDeletedResourceInActiveKb" resultType="com.pickyboy.yuquebackend.domain.entity.Resources">
+    <select id="selectDeletedResourceInActiveKb" resultType="com.pickyboy.blingBackend.domain.entity.Resources">
         SELECT
             r.*
         FROM
@@ -63,7 +63,7 @@
             AND r.user_id = #{userId}
     </select>
 
-    <select id="selectResourceByCommentInActiveKb" resultType="com.pickyboy.yuquebackend.domain.entity.Resources">
+    <select id="selectResourceByCommentInActiveKb" resultType="com.pickyboy.blingBackend.domain.entity.Resources">
         SELECT
             r.*
         FROM
@@ -82,7 +82,7 @@
 
     <!-- 【核心优化】统一的递归查询 - 查询所有子孙节点（无论删除状态） -->
     <!-- ⚠️ 注意：此查询使用WITH RECURSIVE语法，需要MySQL 8.0+支持 -->
-    <select id="selectAllDescendants" resultType="com.pickyboy.yuquebackend.domain.entity.Resources">
+    <select id="selectAllDescendants" resultType="com.pickyboy.blingBackend.domain.entity.Resources">
         WITH RECURSIVE descendants AS (
             -- 递归起点：直接子节点（无论删除状态）
             SELECT *, 1 as level

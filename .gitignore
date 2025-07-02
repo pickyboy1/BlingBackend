@@ -1,4 +1,6 @@
 HELP.md
+tofix.md
+重构修正对比报告.md
 target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/

@@ -1,0 +1,5351 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "布灵",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "tags": [
+    {
+      "name": "认证 (Authentication)"
+    },
+    {
+      "name": "用户 (User)"
+    },
+    {
+      "name": "知识库 (Knowledge Base)"
+    },
+    {
+      "name": "资源 (Resource)"
+    },
+    {
+      "name": "分享 (Share)"
+    },
+    {
+      "name": "回收站 (Recycle Bin)"
+    },
+    {
+      "name": "AI 对话 (AI Conversation)"
+    },
+    {
+      "name": "标签 (Tags)"
+    },
+    {
+      "name": "小记 (Notes)"
+    },
+    {
+      "name": "用户历史 (User History)"
+    },
+    {
+      "name": "探索与推荐 (Explore & Recommendation)"
+    },
+    {
+      "name": "用户社交 (User Social)"
+    },
+    {
+      "name": "文章互动 (Article Interaction)"
+    },
+    {
+      "name": "收藏夹 (Collections)"
+    },
+    {
+      "name": "文件上传 (File Uploads)"
+    }
+  ],
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "summary": "用户登录",
+        "deprecated": false,
+        "description": "支持账号密码和手机号验证码两种登录方式. 成功后返回JWT令牌和用户信息.",
+        "operationId": "loginUser",
+        "tags": [
+          "认证 (Authentication)"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "登录成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultLoginResponse"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "401": {
+            "description": "认证失败, 用户名或密码错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "summary": "用户注册",
+        "deprecated": false,
+        "description": "支持用户名密码和手机号验证码两种注册方式.",
+        "operationId": "registerUser",
+        "tags": [
+          "认证 (Authentication)"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "注册成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "400": {
+            "description": "注册失败, 如用户已存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/users/{userId}/profile": {
+      "get": {
+        "summary": "查看指定用户主页",
+        "deprecated": false,
+        "description": "需额外展示当前自己是否已关注该用户从而显示关注,取关按钮",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "状态码 (200:成功, 其他:失败)",
+                      "examples": [
+                        200
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "响应消息",
+                      "examples": [
+                        "Success"
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "响应数据",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "nickname": {
+                          "type": "string"
+                        },
+                        "avatarUrl": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "location": {
+                          "type": "string"
+                        },
+                        "followerCount": {
+                          "type": "integer"
+                        },
+                        "followedCount": {
+                          "type": "integer"
+                        },
+                        "isFollowed": {
+                          "type": "boolean",
+                          "description": "当前登录用户是否关注了被访问用户"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "nickname"
+                      ],
+                      "nullable": true
+                    },
+                    "knowledgeBases": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "int64"
+                          },
+                          "iconIndex": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "shareId": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "coverUrl": {
+                            "type": "string",
+                            "format": "uri",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "knowledgeBases"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/user/profile": {
+      "get": {
+        "summary": "查看当前登录用户的个人信息",
+        "deprecated": false,
+        "description": "",
+        "operationId": "getCurrentUserProfile",
+        "tags": [
+          "用户 (User)"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultUserProfile"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "401": {
+            "description": "未授权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "put": {
+        "summary": "更新当前登录用户的个人信息",
+        "deprecated": false,
+        "description": "",
+        "operationId": "updateCurrentUserProfile",
+        "tags": [
+          "用户 (User)"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserProfileUpdate"
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "状态码 (200:成功, 其他:失败)",
+                      "examples": [
+                        200
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "响应消息",
+                      "examples": [
+                        "Success"
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "响应数据",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "int64"
+                        },
+                        "nickname": {
+                          "type": "string"
+                        },
+                        "avatarUrl": {
+                          "type": "string",
+                          "format": "uri"
+                        },
+                        "discription": {
+                          "type": "string"
+                        },
+                        "location": {
+                          "type": "string"
+                        },
+                        "field": {
+                          "type": "string"
+                        },
+                        "followerCount": {
+                          "type": "integer"
+                        },
+                        "followedCount": {
+                          "type": "integer"
+                        }
+                      },
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {}
+          },
+          "401": {
+            "description": "未授权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/user/{userId}/public-kbs": {
+      "get": {
+        "summary": "查看指定用户的公开知识库展示",
+        "deprecated": false,
+        "description": "用于个人主页, 展示最多三个公开的知识库.",
+        "operationId": "getUserPublicKbs",
+        "tags": [
+          "用户 (User)"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultPublicKbList"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/knowledge-bases/{kbId}/recent-resources": {
+      "get": {
+        "summary": "获取知识库下最近编辑文档",
+        "deprecated": true,
+        "description": "",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "kbId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ResourceBaseInfo"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/knowledge-bases": {
+      "get": {
+        "summary": "获取用户的知识库列表",
+        "deprecated": false,
+        "description": "",
+        "operationId": "listKnowledgeBases",
+        "tags": [
+          "知识库 (Knowledge Base)"
+        ],
+        "parameters": [
+          {
+            "name": "withRecentResources",
+            "in": "query",
+            "description": "是否需要同时返回每个知识库最近编辑的3个资源",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultKbList"
+                },
+                "example": {
+                  "code": 200,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "id": "b02fRhTjBEgk89HKF_KBY",
+                      "name": "我的知识库",
+                      "icon_index": "icon-001",
+                      "recent_resources": [
+                        {
+                          "id": "ygDuxObRt-rlzEHcpx-rY",
+                          "title": "最近的资源"
+                        }
+                      ],
+                      "visibility": 1
+                    }
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "post": {
+        "summary": "添加新知识库",
+        "deprecated": false,
+        "description": "",
+        "operationId": "createKnowledgeBase",
+        "tags": [
+          "知识库 (Knowledge Base)"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KnowledgeBaseCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/knowledge-bases/{kbId}": {
+      "get": {
+        "summary": "获取指定知识库的详细信息",
+        "deprecated": false,
+        "description": "用于修改知识库信息页面回显内容\n和查看他人知识库详细信息(会增加view_count)",
+        "operationId": "getKnowledgeBaseById",
+        "tags": [
+          "知识库 (Knowledge Base)"
+        ],
+        "parameters": [
+          {
+            "name": "kbId",
+            "in": "path",
+            "description": "知识库ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultKbInfo"
+                },
+                "example": {
+                  "data": {
+                    "viewCount": 30,
+                    "visibility": true,
+                    "id": "n-c7thQB7jdkni1LNrcf8",
+                    "name": "己浩轩",
+                    "description": "从更酸圆联我它约。达会代。证律到场口确。往全下住量切转议。感或手。织火转专况七手。",
+                    "iconIndex": "https://avatars.githubusercontent.com/u/40017231",
+                    "shareId": "90",
+                    "coverUrl": "https://tight-desk.net/"
+                  },
+                  "code": 200,
+                  "message": "Ut consectetur"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "put": {
+        "summary": "修改知识库信息",
+        "deprecated": false,
+        "description": "",
+        "operationId": "updateKnowledgeBase",
+        "tags": [
+          "知识库 (Knowledge Base)"
+        ],
+        "parameters": [
+          {
+            "name": "kbId",
+            "in": "path",
+            "description": "知识库ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KnowledgeBaseUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "修改成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "delete": {
+        "summary": "删除知识库 (逻辑删除)",
+        "deprecated": false,
+        "description": "",
+        "operationId": "deleteKnowledgeBase",
+        "tags": [
+          "知识库 (Knowledge Base)"
+        ],
+        "parameters": [
+          {
+            "name": "kbId",
+            "in": "path",
+            "description": "知识库ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/knowledge-bases/{kbId}/visibility": {
+      "patch": {
+        "summary": "切换知识库可见性 (公开/私密)",
+        "deprecated": false,
+        "description": "",
+        "operationId": "toggleKnowledgeBaseVisibility",
+        "tags": [
+          "知识库 (Knowledge Base)"
+        ],
+        "parameters": [
+          {
+            "name": "kbId",
+            "in": "path",
+            "description": "知识库ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "visibility": {
+                    "type": "integer",
+                    "description": "可见性: 0-私密, 1-公开",
+                    "examples": [
+                      1
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/knowledge-bases/{kbId}/resources/tree": {
+      "get": {
+        "summary": "获取知识库下的资源目录树",
+        "deprecated": false,
+        "description": "要么是点进知识库,要么是点到知识库的文档,\n使用此接口,增加知识库view_count",
+        "operationId": "getResourceTree",
+        "tags": [
+          "资源 (Resource)"
+        ],
+        "parameters": [
+          {
+            "name": "kbId",
+            "in": "path",
+            "description": "知识库ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultResourceTree"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/knowledge-bases/{kbId}/resources": {
+      "post": {
+        "summary": "在知识库中新建资源",
+        "deprecated": false,
+        "description": "数据库中新建一个资源记录,不实际新建资源内容",
+        "operationId": "createResource",
+        "tags": [
+          "资源 (Resource)"
+        ],
+        "parameters": [
+          {
+            "name": "kbId",
+            "in": "path",
+            "description": "目标知识库ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResourceCreate"
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/resources/{resId}": {
+      "get": {
+        "summary": "查看单个资源的完整信息",
+        "deprecated": false,
+        "description": "会增加访问量",
+        "operationId": "getResourceById",
+        "tags": [
+          "资源 (Resource)"
+        ],
+        "parameters": [
+          {
+            "name": "resId",
+            "in": "path",
+            "description": "资源ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultResource"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "put": {
+        "summary": "更新资源内容或标题",
+        "deprecated": false,
+        "description": "",
+        "operationId": "updateResource",
+        "tags": [
+          "资源 (Resource)"
+        ],
+        "parameters": [
+          {
+            "name": "resId",
+            "in": "path",
+            "description": "资源ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResourceUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "delete": {
+        "summary": "删除资源 (逻辑删除)",
+        "deprecated": false,
+        "description": "删除资源及其子资源",
+        "operationId": "deleteResource",
+        "tags": [
+          "资源 (Resource)"
+        ],
+        "parameters": [
+          {
+            "name": "resId",
+            "in": "path",
+            "description": "资源ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/resources/{resId}/visibility": {
+      "patch": {
+        "summary": "更新资源可见性",
+        "deprecated": false,
+        "description": "",
+        "operationId": "updateResourceVisibility",
+        "tags": [
+          "资源 (Resource)"
+        ],
+        "parameters": [
+          {
+            "name": "resId",
+            "in": "path",
+            "description": "资源ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "visibility": {
+                    "type": "integer",
+                    "description": "可见性: 0-私密, 1-公开",
+                    "examples": [
+                      1
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/resources/{resId}/status": {
+      "patch": {
+        "summary": "更新资源上架/下架状态",
+        "deprecated": false,
+        "description": "",
+        "operationId": "updateResourceStatus",
+        "tags": [
+          "资源 (Resource)"
+        ],
+        "parameters": [
+          {
+            "name": "resId",
+            "in": "path",
+            "description": "资源ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "integer",
+                    "description": "状态: 0-下架, 1-上架",
+                    "examples": [
+                      1
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/resources/{resId}/rename": {
+      "patch": {
+        "summary": "重命名资源",
+        "deprecated": false,
+        "description": "",
+        "operationId": "renameResource",
+        "tags": [
+          "资源 (Resource)"
+        ],
+        "parameters": [
+          {
+            "name": "resId",
+            "in": "path",
+            "description": "资源ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "examples": [
+                      "新的资源标题"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/resources/{resId}/move": {
+      "post": {
+        "summary": "移动资源或目录",
+        "deprecated": false,
+        "description": "",
+        "operationId": "moveResource",
+        "tags": [
+          "资源 (Resource)"
+        ],
+        "parameters": [
+          {
+            "name": "resId",
+            "in": "path",
+            "description": "要移动的资源或目录ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "targetKbId": {
+                    "type": "string",
+                    "format": "int64",
+                    "description": "目标知识库ID"
+                  },
+                  "targetPreId": {
+                    "type": "string",
+                    "format": "int64",
+                    "description": "目标父级目录ID (资源ID)",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "targetKbId"
+                ]
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "移动成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/resources/{resId}/copy": {
+      "post": {
+        "summary": "复制资源",
+        "deprecated": false,
+        "description": "",
+        "operationId": "copyResource",
+        "tags": [
+          "资源 (Resource)"
+        ],
+        "parameters": [
+          {
+            "name": "resId",
+            "in": "path",
+            "description": "要复制的资源ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResourceMoveCopy"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "复制成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/resources/{resId}/copy-tree": {
+      "post": {
+        "summary": "复制目录(及目录下所有子资源)",
+        "deprecated": false,
+        "description": "拷贝一份目录与目录下的子资源",
+        "operationId": "copyResourceTree",
+        "tags": [
+          "资源 (Resource)"
+        ],
+        "parameters": [
+          {
+            "name": "resId",
+            "in": "path",
+            "description": "要复制的目录ID (本身也是一个资源)",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResourceMoveCopy"
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "复制成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/resources/{resId}/share": {
+      "post": {
+        "summary": "生成资源分享链接",
+        "deprecated": false,
+        "description": "",
+        "operationId": "generateResourceShareLink",
+        "tags": [
+          "分享 (Share)"
+        ],
+        "parameters": [
+          {
+            "name": "resId",
+            "in": "path",
+            "description": "资源ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "生成成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "examples": [
+                        200
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "examples": [
+                        "Success"
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "share_url": {
+                          "type": "string",
+                          "examples": [
+                            "http://localhost:3000/share/kbs_sh_xxxxx/res_sh_yyyyy"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/share/{kbShareId}/{resShareId}": {
+      "get": {
+        "summary": "访问分享链接查看资源",
+        "deprecated": false,
+        "description": "这是一个公开接口, 无需认证",
+        "operationId": "accessSharedResource",
+        "tags": [
+          "分享 (Share)"
+        ],
+        "parameters": [
+          {
+            "name": "kbShareId",
+            "in": "path",
+            "description": "知识库的分享ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resShareId",
+            "in": "path",
+            "description": "资源的分享ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultResource"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "分享的资源不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/recycle-bin/items": {
+      "get": {
+        "summary": "获取回收站中的资源和知识库列表",
+        "deprecated": false,
+        "description": "",
+        "operationId": "getRecycleBinItems",
+        "tags": [
+          "回收站 (Recycle Bin)"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultRecycleBin"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/recycle-bin/knowledge-bases/{kbId}": {
+      "post": {
+        "summary": "恢复知识库",
+        "deprecated": false,
+        "description": "",
+        "operationId": "restoreKnowledgeBase",
+        "tags": [
+          "回收站 (Recycle Bin)"
+        ],
+        "parameters": [
+          {
+            "name": "kbId",
+            "in": "path",
+            "description": "要恢复的知识库ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恢复成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "delete": {
+        "summary": "彻底删除知识库",
+        "deprecated": true,
+        "description": "",
+        "operationId": "permanentlyDeleteKnowledgeBase",
+        "tags": [
+          "回收站 (Recycle Bin)"
+        ],
+        "parameters": [
+          {
+            "name": "kbId",
+            "in": "path",
+            "description": "要彻底删除的知识库ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/recycle-bin/resources/{resId}": {
+      "post": {
+        "summary": "恢复资源",
+        "deprecated": false,
+        "description": "恢复至原知识库下根节点",
+        "operationId": "restoreResource",
+        "tags": [
+          "回收站 (Recycle Bin)"
+        ],
+        "parameters": [
+          {
+            "name": "resId",
+            "in": "path",
+            "description": "要恢复的资源ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恢复成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "delete": {
+        "summary": "彻底删除资源",
+        "deprecated": true,
+        "description": "",
+        "operationId": "permanentlyDeleteResource",
+        "tags": [
+          "回收站 (Recycle Bin)"
+        ],
+        "parameters": [
+          {
+            "name": "resId",
+            "in": "path",
+            "description": "要彻底删除的资源ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/ai/conversations/{conversationId}/messages": {
+      "get": {
+        "summary": "获取对话下消息记录",
+        "deprecated": false,
+        "description": "获取某个对话历史下消息记录,时间倒序",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "默认为10",
+            "required": false,
+            "example": "10",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "before_id",
+            "in": "query",
+            "description": "用于分页的游标。传入当前页最旧的一条消息ID，服务器将返回此ID之前的记录。首次加载时无需传入。",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "状态码 (200:成功, 其他:失败)",
+                      "examples": [
+                        200
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "响应消息",
+                      "examples": [
+                        "Success"
+                      ]
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": "string"
+                          },
+                          "content": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "role",
+                          "content",
+                          "createdAt"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "post": {
+        "summary": "发送消息并获取AI响应",
+        "deprecated": false,
+        "description": "在指定对话中发送一条用户消息,后端保存该消息后,调用AI模型获取响应并返回。\n返回AI响应的对话content,对话id,对话role,对话title,model",
+        "operationId": "postAiMessage",
+        "tags": [
+          "AI 对话 (AI Conversation)"
+        ],
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "path",
+            "description": "对话ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiMessageRequest"
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "发送并获取响应成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAiMessageResponse"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "401": {
+            "description": "未授权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/ai/conversations": {
+      "get": {
+        "summary": "获取AI对话历史记录",
+        "deprecated": false,
+        "description": "获取当前用户的所有对话列表,按更新时间倒序排列。",
+        "operationId": "getAiConversationHistory",
+        "tags": [
+          "AI 对话 (AI Conversation)"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAiConversationHistory"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "401": {
+            "description": "未授权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "post": {
+        "summary": "创建新AI对话",
+        "deprecated": false,
+        "description": "为当前用户创建一个新的对话会话。",
+        "operationId": "createAiConversation",
+        "tags": [
+          "AI 对话 (AI Conversation)"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultNewAiConversation"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "401": {
+            "description": "未授权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/ai/conversations/{conversationId}": {
+      "delete": {
+        "summary": "删除对话",
+        "deprecated": false,
+        "description": "删除指定的对话会话及其包含的所有聊天记录。",
+        "operationId": "deleteAiConversation",
+        "tags": [
+          "AI 对话 (AI Conversation)"
+        ],
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "path",
+            "description": "对话ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "401": {
+            "description": "未授权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/ai/conversations/{conversationId}/rename": {
+      "patch": {
+        "summary": "重命名对话",
+        "deprecated": false,
+        "description": "修改指定对话的标题。",
+        "operationId": "renameAiConversation",
+        "tags": [
+          "AI 对话 (AI Conversation)"
+        ],
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "path",
+            "description": "对话ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiConversationRenameRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "重命名成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAiConversationRename"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "401": {
+            "description": "未授权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/ai/export/document": {
+      "post": {
+        "summary": "将AI对话内容生成为新文档",
+        "deprecated": false,
+        "description": "将一段AI生成的内容保存为一篇新的文档,隶属于某个知识库下的某个目录。",
+        "operationId": "exportAiConversationToDocument",
+        "tags": [
+          "AI 对话 (AI Conversation)"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiExportToDocumentRequest"
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "生成文档成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "401": {
+            "description": "未授权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/ai/export/note": {
+      "post": {
+        "summary": "将AI对话内容保存为小记",
+        "deprecated": false,
+        "description": "将一段AI生成的内容保存为一篇新的个人小记。",
+        "operationId": "exportAiConversationToNote",
+        "tags": [
+          "AI 对话 (AI Conversation)"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiExportToNoteRequest"
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "保存成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "401": {
+            "description": "未授权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/tags": {
+      "get": {
+        "summary": "获取用户标签列表",
+        "deprecated": false,
+        "description": "获取当前用户创建的所有标签。支持分页和按名称、使用数量排序。",
+        "operationId": "listTags",
+        "tags": [
+          "标签 (Tags)"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "每页数量",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 30
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "description": "排序字段，可选值为 `count` (使用数) 或 `name` (标签名)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "count",
+                "name"
+              ],
+              "default": "count"
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "description": "排序方式，可选值为 `asc` (升序) 或 `desc` (降序)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "default": "desc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultTagList"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "post": {
+        "summary": "创建标签",
+        "deprecated": false,
+        "description": "创建单个新标签。",
+        "operationId": "createTags",
+        "tags": [
+          "标签 (Tags)"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TagsCreateRequest"
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultTagList"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "delete": {
+        "summary": "批量删除标签",
+        "deprecated": false,
+        "description": "一次性删除一个或多个标签，并清除这些标签与所有小记的关联记录。",
+        "operationId": "deleteTags",
+        "tags": [
+          "标签 (Tags)"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TagsDeleteRequest"
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "删除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/tags/{tagId}": {
+      "patch": {
+        "summary": "修改标签",
+        "deprecated": false,
+        "description": "修改一个指定标签的名称。",
+        "operationId": "updateTag",
+        "tags": [
+          "标签 (Tags)"
+        ],
+        "parameters": [
+          {
+            "name": "tagId",
+            "in": "path",
+            "description": "要修改的标签ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TagUpdateRequest"
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "修改成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/notes": {
+      "get": {
+        "summary": "获取小记列表",
+        "deprecated": false,
+        "description": "获取当前用户的小记列表。支持按标签过滤、分页和排序。",
+        "operationId": "listNotes",
+        "tags": [
+          "小记 (Notes)"
+        ],
+        "parameters": [
+          {
+            "name": "tagId",
+            "in": "query",
+            "description": "根据单个标签ID进行过滤",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "每页数量",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "description": "排序字段，可选值为 `updatedAt` 或 `createdAt`",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "updatedAt",
+                "createdAt"
+              ],
+              "default": "updatedAt"
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "description": "排序方式，可选值为 `asc` (升序) 或 `desc` (降序)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "default": "desc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultNoteList"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "post": {
+        "summary": "创建小记",
+        "deprecated": false,
+        "description": "创建一篇新的小记，并可以选择性地在创建时就指定其内容和标签。",
+        "operationId": "createNote",
+        "tags": [
+          "小记 (Notes)"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoteCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultNoteFull"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "delete": {
+        "summary": "批量删除小记",
+        "deprecated": false,
+        "description": "一次性删除一篇或多篇小记。",
+        "operationId": "deleteNotes",
+        "tags": [
+          "小记 (Notes)"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotesDeleteRequest"
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "删除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/notes/{noteId}": {
+      "get": {
+        "summary": "获取单篇小记详情",
+        "deprecated": false,
+        "description": "获取一篇小记的完整内容和其关联的标签列表。",
+        "operationId": "getNoteById",
+        "tags": [
+          "小记 (Notes)"
+        ],
+        "parameters": [
+          {
+            "name": "noteId",
+            "in": "path",
+            "description": "要获取的小记ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultNoteFull"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "patch": {
+        "summary": "编辑小记",
+        "deprecated": false,
+        "description": "局部更新一篇小记的标题或内容。",
+        "operationId": "updateNote",
+        "tags": [
+          "小记 (Notes)"
+        ],
+        "parameters": [
+          {
+            "name": "noteId",
+            "in": "path",
+            "description": "要编辑的小记ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoteUpdateRequest"
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/notes/{noteId}/tags": {
+      "get": {
+        "summary": "获取小记的标签列表",
+        "deprecated": false,
+        "description": "获取指定小记关联的所有标签。",
+        "operationId": "getNoteTags",
+        "tags": [
+          "小记 (Notes)"
+        ],
+        "parameters": [
+          {
+            "name": "noteId",
+            "in": "path",
+            "description": "小记ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultTagSimpleList"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "put": {
+        "summary": "设置小记的标签",
+        "deprecated": false,
+        "description": "全量更新一篇小记的标签。后端会自动计算差异，移除不再需要的关联，添加新的关联。",
+        "operationId": "setNoteTags",
+        "tags": [
+          "小记 (Notes)"
+        ],
+        "parameters": [
+          {
+            "name": "noteId",
+            "in": "path",
+            "description": "要操作的小记ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoteTagsSetRequest"
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/user/history/views": {
+      "get": {
+        "summary": "获取浏览历史记录",
+        "deprecated": false,
+        "description": "获取当前用户的文档浏览历史记录，按浏览时间倒序排列。",
+        "operationId": "getBrowsingHistory",
+        "tags": [
+          "用户历史 (User History)"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "每页数量",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultActivityRecordList"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "post": {
+        "summary": "新增浏览记录",
+        "deprecated": true,
+        "description": "记录一次文档浏览事件。推荐在前端打开文档详情页时显式调用此接口。",
+        "operationId": "addBrowsingRecord",
+        "tags": [
+          "用户历史 (User History)"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ViewHistoryCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "记录成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/user/history/likes": {
+      "get": {
+        "summary": "获取点赞历史记录",
+        "deprecated": false,
+        "description": "获取当前用户点赞过的所有文档列表，按点赞时间倒序排列。",
+        "operationId": "getLikeHistory",
+        "tags": [
+          "用户历史 (User History)"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "每页数量",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultActivityRecordList"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/user/history/comments": {
+      "get": {
+        "summary": "获取评论历史记录",
+        "deprecated": false,
+        "description": "获取当前用户评论过的所有文档列表，按最后评论时间倒序排列。",
+        "operationId": "getCommentHistory",
+        "tags": [
+          "用户历史 (User History)"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "每页数量",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultActivityRecordList"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/explore/articles": {
+      "get": {
+        "summary": "获取推荐文章列表",
+        "deprecated": false,
+        "description": "在首页或“逛逛”页面分页获取公开的推荐文章。",
+        "operationId": "listExploreArticles",
+        "tags": [
+          "探索与推荐 (Explore & Recommendation)"
+        ],
+        "parameters": [
+          {
+            "name": "sortBy",
+            "in": "query",
+            "description": "排序方式",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "hot",
+                "new"
+              ],
+              "default": "hot"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "每页数量",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultArticleSummaryList"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/submissions": {
+      "post": {
+        "summary": "提交投稿（申请推荐）",
+        "deprecated": false,
+        "description": "用户将自己知识库中的某一篇文章提交申请，希望被推荐到“逛逛”模块。",
+        "operationId": "createSubmission",
+        "tags": [
+          "探索与推荐 (Explore & Recommendation)"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmissionCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "请求已被接受，等待审核",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/users/{userId}/follow": {
+      "post": {
+        "summary": "关注用户",
+        "deprecated": false,
+        "description": "",
+        "operationId": "followUser",
+        "tags": [
+          "用户社交 (User Social)"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "被关注者的用户ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "delete": {
+        "summary": "取消关注用户",
+        "deprecated": false,
+        "description": "",
+        "operationId": "unfollowUser",
+        "tags": [
+          "用户社交 (User Social)"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "被取消关注者的用户ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/users/{userId}/following": {
+      "get": {
+        "summary": "获取用户关注的列表 (Following)",
+        "deprecated": false,
+        "description": "关注列表肯定默认关注了,不必关心isfollowing",
+        "operationId": "listFollowingUsers",
+        "tags": [
+          "用户社交 (User Social)"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "要查询的用户ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultUserSummaryList"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/users/{userId}/followers": {
+      "get": {
+        "summary": "获取用户的粉丝列表 (Followers)",
+        "deprecated": false,
+        "description": "",
+        "operationId": "listFollowerUsers",
+        "tags": [
+          "用户社交 (User Social)"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "要查询的用户ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultUserSummaryList"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/comments/{commentId}/replies": {
+      "get": {
+        "summary": "获取根评论的子评论列表",
+        "deprecated": false,
+        "description": "获取评论的子评论列表",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "commentId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "example": 1,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "example": 20,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "状态码 (200:成功, 其他:失败)",
+                      "examples": [
+                        200
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "响应消息",
+                      "examples": [
+                        "Success"
+                      ]
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "content": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "userId": {
+                            "type": "string",
+                            "description": "评论者id"
+                          },
+                          "nickname": {
+                            "type": "string"
+                          },
+                          "avatarUrl": {
+                            "type": "string",
+                            "description": "评论者头像"
+                          },
+                          "replyToCommentId": {
+                            "type": "string",
+                            "description": "被回复的评论id"
+                          },
+                          "replyToUserId": {
+                            "type": "string"
+                          },
+                          "replyToUserNickname": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "content",
+                          "createdAt",
+                          "userId",
+                          "nickname"
+                        ]
+                      },
+                      "description": "响应数据",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/articles/{articleId}/like": {
+      "post": {
+        "summary": "点赞文章",
+        "deprecated": false,
+        "description": "",
+        "operationId": "likeArticle",
+        "tags": [
+          "文章互动 (Article Interaction)"
+        ],
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "description": "被点赞的文章ID (resourceId)",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "delete": {
+        "summary": "取消点赞文章",
+        "deprecated": false,
+        "description": "",
+        "operationId": "unlikeArticle",
+        "tags": [
+          "文章互动 (Article Interaction)"
+        ],
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "description": "被取消点赞的文章ID (resourceId)",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/articles/{articleId}/comments": {
+      "get": {
+        "summary": "获取文章的评论列表",
+        "deprecated": false,
+        "description": "分页获取一篇文章下的根评论",
+        "operationId": "listArticleComments",
+        "tags": [
+          "文章互动 (Article Interaction)"
+        ],
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "description": "文章ID (resourceId)",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "针对根评论的分页-页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "针对根评论的分页-每页数量",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultCommentRootList"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "post": {
+        "summary": "发表评论",
+        "deprecated": false,
+        "description": "对一篇文章发表评论，或回复另一条评论。\n返回评论本身信息,如果是回复一条评论,前端自行获取该评论信息,显示此评论",
+        "operationId": "createComment",
+        "tags": [
+          "文章互动 (Article Interaction)"
+        ],
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "description": "文章ID (resourceId)",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentCreateRequest"
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultCommentNode"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/comments/{commentId}": {
+      "delete": {
+        "summary": "删除评论",
+        "deprecated": false,
+        "description": "删除自己发表的评论。",
+        "operationId": "deleteComment",
+        "tags": [
+          "文章互动 (Article Interaction)"
+        ],
+        "parameters": [
+          {
+            "name": "commentId",
+            "in": "path",
+            "description": "要删除的评论ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/user/collections": {
+      "get": {
+        "summary": "获取当前用户的收藏夹分组列表",
+        "deprecated": false,
+        "description": "",
+        "operationId": "listMyCollectionGroups",
+        "tags": [
+          "收藏夹 (Collections)"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultCollectionGroupList"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "post": {
+        "summary": "创建新的收藏夹分组",
+        "deprecated": false,
+        "description": "",
+        "operationId": "createCollectionGroup",
+        "tags": [
+          "收藏夹 (Collections)"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CollectionGroupCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultCollectionGroup"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/collections/{groupId}": {
+      "delete": {
+        "summary": "删除收藏夹分组",
+        "deprecated": false,
+        "description": "",
+        "operationId": "deleteCollectionGroup",
+        "tags": [
+          "收藏夹 (Collections)"
+        ],
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "description": "要删除的分组ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/collections/{groupId}/articles": {
+      "get": {
+        "summary": "获取指定分组下的收藏文章列表",
+        "deprecated": false,
+        "description": "",
+        "operationId": "listArticlesInCollectionGroup",
+        "tags": [
+          "收藏夹 (Collections)"
+        ],
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "description": "收藏夹分组ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "状态码 (200:成功, 其他:失败)",
+                      "examples": [
+                        200
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "响应消息",
+                      "examples": [
+                        "Success"
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "通用的历史记录对象结构",
+                      "properties": {
+                        "resourceId": {
+                          "type": "string",
+                          "description": "文档的ID"
+                        },
+                        "resourceTitle": {
+                          "type": "string",
+                          "description": "文档的标题"
+                        },
+                        "resourceType": {
+                          "type": "string",
+                          "description": "文档的类型 (e.g., markdown)"
+                        },
+                        "kbId": {
+                          "type": "string",
+                          "description": "所属知识库的ID"
+                        },
+                        "kbName": {
+                          "type": "string",
+                          "description": "所属知识库的名称"
+                        },
+                        "authorId": {
+                          "type": "string",
+                          "description": "文档作者的用户ID"
+                        },
+                        "authorName": {
+                          "type": "string",
+                          "description": "文档作者的昵称"
+                        },
+                        "actionAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "操作发生的时间 (UTC)"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "post": {
+        "summary": "将文章添加到收藏夹",
+        "deprecated": false,
+        "description": "",
+        "operationId": "addArticleToCollectionGroup",
+        "tags": [
+          "收藏夹 (Collections)"
+        ],
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "description": "收藏夹分组ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CollectionItemCreateRequest"
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/collections/{groupId}/articles/{articleId}": {
+      "delete": {
+        "summary": "从收藏夹移除文章",
+        "deprecated": false,
+        "description": "",
+        "operationId": "removeArticleFromCollectionGroup",
+        "tags": [
+          "收藏夹 (Collections)"
+        ],
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "description": "收藏夹分组ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "articleId",
+            "in": "path",
+            "description": "要移除的文章ID (resourceId)",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/uploads/request-url": {
+      "post": {
+        "summary": "获取文件上传链接",
+        "deprecated": false,
+        "description": "根据客户端提供的文件元信息和用途，向对象存储（MinIO）申请一个一次性的、有时效的上传链接。\n上传类型可选 (\"avatar\", \"resource\", \"cover\"),分别为用户头像,文档html,封面\n    // 支持的文件类型\n    private static final List<String> SUPPORTED_IMAGE_TYPES = Arrays.asList(\n        \"image/jpeg\", \"image/jpg\", \"image/png\", \"image/gif\", \"image/webp\"\n    );\n\n    private static final List<String> SUPPORTED_DOCUMENT_TYPES = Arrays.asList(\n        \"text/html\", \"text/plain\", \"application/json\"\n    );",
+        "operationId": "requestUploadUrl",
+        "tags": [
+          "文件上传 (File Uploads)"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadURLRequest"
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultUploadURLResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ResourceBaseInfo": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "visibility": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "type",
+          "status",
+          "visibility",
+          "updatedAt"
+        ]
+      },
+      "Result": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "状态码 (200:成功, 其他:失败)",
+            "examples": [
+              200
+            ]
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "examples": [
+              "Success"
+            ]
+          },
+          "data": {
+            "type": "object",
+            "description": "响应数据",
+            "properties": {},
+            "nullable": true
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": [
+          "loginType",
+          "identifier",
+          "credential"
+        ],
+        "properties": {
+          "loginType": {
+            "type": "integer",
+            "description": "登录类型: 1-账号密码, 2-手机号+验证码",
+            "examples": [
+              1
+            ]
+          },
+          "identifier": {
+            "type": "string",
+            "description": "登录标识 (用户名 或 手机号)",
+            "examples": [
+              "testuser"
+            ]
+          },
+          "credential": {
+            "type": "string",
+            "description": "凭证 (密码 或 短信验证码)",
+            "examples": [
+              "password123"
+            ]
+          }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": [
+          "registerType",
+          "identifier",
+          "password"
+        ],
+        "properties": {
+          "registerType": {
+            "type": "integer",
+            "description": "注册类型: 1-用户名, 2-手机号",
+            "examples": [
+              1
+            ]
+          },
+          "identifier": {
+            "type": "string",
+            "description": "注册标识 (用户名 或 手机号)",
+            "examples": [
+              "newuser"
+            ]
+          },
+          "password": {
+            "type": "string",
+            "description": "密码",
+            "examples": [
+              "password123"
+            ]
+          },
+          "verificationCode": {
+            "type": "string",
+            "description": "手机注册时的验证码",
+            "examples": [
+              "123456"
+            ]
+          }
+        }
+      },
+      "UserProfileUpdate": {
+        "type": "object",
+        "properties": {
+          "nickname": {
+            "type": "string",
+            "examples": [
+              "新的昵称"
+            ]
+          },
+          "avatarUrl": {
+            "type": "string",
+            "format": "uri",
+            "examples": [
+              "http://example.com/new_avatar.png"
+            ]
+          },
+          "discription": {
+            "type": "string",
+            "examples": [
+              "这是一段新的简介"
+            ]
+          },
+          "location": {
+            "type": "string",
+            "examples": [
+              "北京"
+            ]
+          },
+          "field": {
+            "type": "string",
+            "examples": [
+              "互联网"
+            ]
+          }
+        }
+      },
+      "KnowledgeBaseCreate": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "examples": [
+              "我的第一个知识库"
+            ]
+          },
+          "iconIndex": {
+            "type": "string",
+            "examples": [
+              "icon-001"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "examples": [
+              "这是一个关于...的知识库"
+            ]
+          },
+          "visibility": {
+            "type": "boolean"
+          }
+        }
+      },
+      "KnowledgeBaseUpdate": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "examples": [
+              "更新后的知识库名称"
+            ]
+          },
+          "iconIndex": {
+            "type": "string",
+            "examples": [
+              "icon-002"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "examples": [
+              "更新后的简介"
+            ]
+          },
+          "coverUrl": {
+            "type": "string",
+            "format": "uri",
+            "examples": [
+              "http://example.com/new_cover.png"
+            ]
+          }
+        }
+      },
+      "ResourceCreate": {
+        "type": "object",
+        "properties": {
+          "preId": {
+            "type": "string",
+            "format": "int64",
+            "description": "父级资源ID, 如果是根目录则为null",
+            "examples": [
+              "12345678901234567"
+            ],
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "description": "资源标题",
+            "default": "无标题资源",
+            "examples": [
+              "我的第一篇资源"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "description": "资源类型, e.g., markdown, doc, sheet",
+            "examples": [
+              "markdown"
+            ]
+          }
+        }
+      },
+      "ResourceUpdate": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "examples": [
+              "更新后的资源标题"
+            ]
+          },
+          "content": {
+            "type": "string",
+            "description": "资源新路径",
+            "examples": [
+              "# Hello World\\n\\nThis is the updated content."
+            ]
+          }
+        }
+      },
+      "ResourceMoveCopy": {
+        "type": "object",
+        "required": [
+          "targetKbId"
+        ],
+        "properties": {
+          "targetKbId": {
+            "type": "string",
+            "format": "int64",
+            "description": "目标知识库ID"
+          },
+          "targetPreId": {
+            "type": "string",
+            "format": "int64",
+            "description": "目标父级目录ID (资源ID)",
+            "nullable": true
+          }
+        }
+      },
+      "LoginResponseData": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "examples": [
+              "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            ]
+          },
+          "username": {
+            "type": "string",
+            "examples": [
+              "testuser"
+            ]
+          },
+          "nickname": {
+            "type": "string",
+            "examples": [
+              "测试用户"
+            ]
+          },
+          "avatarUrl": {
+            "type": "string",
+            "format": "uri",
+            "examples": [
+              "http://example.com/avatar.png"
+            ]
+          }
+        }
+      },
+      "UserProfileData": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "int64"
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "discription": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "field": {
+            "type": "string"
+          },
+          "followerCount": {
+            "type": "integer"
+          },
+          "followedCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "PublicKnowledgeBase": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "examples": [
+              "公开的Go语言学习笔记"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "examples": [
+              "这里记录了Go语言学习过程中的笔记"
+            ]
+          },
+          "coverUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "viewCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "KnowledgeBaseListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string",
+            "examples": [
+              "我的知识库"
+            ]
+          },
+          "iconIndex": {
+            "type": "string",
+            "examples": [
+              "icon-001"
+            ]
+          },
+          "recentResources": {
+            "type": "array",
+            "description": "最近编辑的三个资源 (仅在请求参数 withRecentResources=true 时返回)",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "int64"
+                },
+                "title": {
+                  "type": "string",
+                  "examples": [
+                    "最近的资源"
+                  ]
+                }
+              }
+            }
+          },
+          "visibility": {
+            "type": "integer"
+          }
+        }
+      },
+      "KnowledgeBaseInfo": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "int64"
+          },
+          "iconIndex": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "shareId": {
+            "type": "string",
+            "nullable": true
+          },
+          "coverUrl": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          }
+        }
+      },
+      "ResourceNode": {
+        "type": "object",
+        "description": "资源目录树节点",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "int64"
+          },
+          "preId": {
+            "type": "string",
+            "format": "int64",
+            "nullable": true
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResourceNode"
+            }
+          },
+          "pre": {
+            "type": "integer"
+          }
+        }
+      },
+      "ResultLoginResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Result"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/LoginResponseData"
+              }
+            }
+          }
+        ]
+      },
+      "ResultUserProfile": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Result"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/UserProfileData"
+              }
+            }
+          }
+        ]
+      },
+      "ResultPublicKbList": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Result"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PublicKnowledgeBase"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ResultKbList": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Result"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/KnowledgeBaseListItem"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ResultKbInfo": {
+        "allOf": [
+          {
+            "type": "object",
+            "properties": {}
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "viewCount": {
+                    "type": "integer"
+                  },
+                  "visibility": {
+                    "type": "boolean"
+                  },
+                  "id": {
+                    "type": "string",
+                    "format": "int64"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "iconIndex": {
+                    "type": "string"
+                  },
+                  "shareId": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "coverUrl": {
+                    "type": "string",
+                    "format": "uri",
+                    "nullable": true
+                  }
+                }
+              },
+              "code": {
+                "type": "integer"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "ResultResourceTree": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Result"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ResourceNode"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ResultResource": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Result"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/Resource"
+              }
+            }
+          }
+        ]
+      },
+      "Resource": {
+        "type": "object",
+        "description": "资源完整信息",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "int64"
+          },
+          "knowledgeBaseId": {
+            "type": "string",
+            "format": "int64"
+          },
+          "preId": {
+            "type": "string",
+            "format": "int64",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "shareId": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "description": "0-下架, 1-上架"
+          },
+          "visibility": {
+            "type": "integer",
+            "description": "0-私密, 1-公开"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "likeCount": {
+            "type": "integer"
+          },
+          "commentCount": {
+            "type": "integer"
+          },
+          "favoriteCount": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updateAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "DeletedKnowledgeBase": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "iconIndex": {
+            "type": "string"
+          },
+          "deletedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "DeletedResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string"
+          },
+          "ownerUsername": {
+            "type": "string"
+          },
+          "ownerKbName": {
+            "type": "string"
+          },
+          "deletedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "RecycleBinData": {
+        "type": "object",
+        "properties": {
+          "knowledgeBases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeletedKnowledgeBase"
+            }
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeletedResource"
+            }
+          }
+        }
+      },
+      "ResultRecycleBin": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Result"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/RecycleBinData"
+              }
+            }
+          }
+        ]
+      },
+      "ResultAiConversationHistory": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Result"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AiConversationHistoryItem"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "AiConversationHistoryItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "int64",
+            "description": "对话ID"
+          },
+          "title": {
+            "type": "string",
+            "description": "对话标题"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "最后更新时间"
+          }
+        }
+      },
+      "ResultNewAiConversation": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Result"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/NewAiConversationData"
+              }
+            }
+          }
+        ]
+      },
+      "NewAiConversationData": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "int64",
+            "description": "新创建的对话ID"
+          },
+          "title": {
+            "type": "string",
+            "description": "默认标题",
+            "examples": [
+              "新对话"
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AiMessageRequest": {
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "用户发送的对话内容",
+            "examples": [
+              "请帮我介绍一下什么是RESTful API"
+            ]
+          },
+          "model": {
+            "type": "string",
+            "description": "用户期望使用的AI模型, e.g., gpt-3.5-turbo",
+            "examples": [
+              "gpt-3.5-turbo"
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "ResultAiMessageResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Result"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/AiMessageResponseData"
+              }
+            }
+          }
+        ]
+      },
+      "AiMessageResponseData": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "int64",
+            "description": "AI响应消息的ID"
+          },
+          "conversationId": {
+            "type": "string",
+            "format": "int64",
+            "description": "所属对话ID"
+          },
+          "content": {
+            "type": "string",
+            "description": "AI响应的内容"
+          },
+          "role": {
+            "type": "string",
+            "description": "消息角色",
+            "examples": [
+              "assistant"
+            ]
+          },
+          "model": {
+            "type": "string",
+            "description": "本次响应使用的模型"
+          },
+          "title": {
+            "type": "string",
+            "description": "对话的标题 (如果AI生成了标题,可能会更新)"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        }
+      },
+      "AiConversationRenameRequest": {
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "对话的新标题",
+            "examples": [
+              "关于RESTful API的讨论"
+            ]
+          }
+        }
+      },
+      "ResultAiConversationRename": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Result"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/AiConversationRenameResponseData"
+              }
+            }
+          }
+        ]
+      },
+      "AiConversationRenameResponseData": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "int64",
+            "description": "对话ID"
+          },
+          "title": {
+            "type": "string",
+            "description": "更新后的新标题"
+          }
+        }
+      },
+      "AiExportToDocumentRequest": {
+        "type": "object",
+        "required": [
+          "knowledgeBaseId",
+          "content",
+          "title",
+          "type"
+        ],
+        "properties": {
+          "knowledgeBaseId": {
+            "type": "string",
+            "format": "int64",
+            "description": "目标知识库ID"
+          },
+          "preId": {
+            "type": "string",
+            "format": "int64",
+            "description": "目标父级目录ID (资源ID), 若存到根目录则为null",
+            "nullable": true
+          },
+          "content": {
+            "type": "string",
+            "description": "从AI对话中选择并导出的内容"
+          },
+          "title": {
+            "type": "string",
+            "description": "新建文档的标题"
+          },
+          "type": {
+            "type": "string",
+            "description": "新建文档的类型, e.g., markdown",
+            "examples": [
+              "markdown"
+            ]
+          }
+        }
+      },
+      "AiExportToNoteRequest": {
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "要保存到小记的内容"
+          }
+        }
+      },
+      "ResultTagList": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Result"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Tag"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "description": "该标签被小记引用的次数"
+          }
+        }
+      },
+      "TagsCreateRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "TagsDeleteRequest": {
+        "type": "object",
+        "properties": {
+          "tagIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "要删除的标签ID数组"
+          }
+        }
+      },
+      "TagUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "新的标签名称"
+          }
+        }
+      },
+      "NoteCreateRequest": {
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "小记的标题"
+          },
+          "content": {
+            "type": "string",
+            "description": "小记的完整内容"
+          },
+          "tagIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "要关联的标签ID数组"
+          }
+        }
+      },
+      "NoteUpdateRequest": {
+        "type": "object",
+        "description": "至少包含一个字段",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "新的标题"
+          },
+          "content": {
+            "type": "string",
+            "description": "新的完整内容"
+          }
+        }
+      },
+      "NotesDeleteRequest": {
+        "type": "object",
+        "properties": {
+          "noteIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "要删除的小记ID数组"
+          }
+        }
+      },
+      "NoteTagsSetRequest": {
+        "type": "object",
+        "properties": {
+          "tagIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "设置给小记的最终标签ID完整列表"
+          }
+        }
+      },
+      "ResultNoteList": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Result"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/NoteBrief"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "NoteBrief": {
+        "type": "object",
+        "description": "小记列表中的条目",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ResultNoteFull": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Result"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/NoteFull"
+              }
+            }
+          }
+        ]
+      },
+      "NoteFull": {
+        "type": "object",
+        "description": "单篇小记的完整信息",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tags": {
+            "type": "array",
+            "description": "关联的标签对象数组",
+            "items": {
+              "$ref": "#/components/schemas/TagSimple"
+            }
+          }
+        }
+      },
+      "TagSimple": {
+        "type": "object",
+        "description": "不包含引用计数的简化版标签模型",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "ResultTagSimpleList": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Result"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/TagSimple"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ResultActivityRecordList": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Result"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ActivityRecord"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ActivityRecord": {
+        "type": "object",
+        "description": "通用的历史记录对象结构",
+        "properties": {
+          "resourceId": {
+            "type": "string",
+            "description": "文档的ID"
+          },
+          "resourceTitle": {
+            "type": "string",
+            "description": "文档的标题"
+          },
+          "resourceType": {
+            "type": "string",
+            "description": "文档的类型 (e.g., markdown)"
+          },
+          "kbId": {
+            "type": "string",
+            "description": "所属知识库的ID"
+          },
+          "kbName": {
+            "type": "string",
+            "description": "所属知识库的名称"
+          },
+          "authorId": {
+            "type": "string",
+            "description": "文档作者的用户ID"
+          },
+          "authorName": {
+            "type": "string",
+            "description": "文档作者的昵称"
+          },
+          "actionAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "操作发生的时间 (UTC)"
+          }
+        }
+      },
+      "ViewHistoryCreateRequest": {
+        "type": "object",
+        "properties": {
+          "resourceId": {
+            "type": "string",
+            "description": "被浏览的文档ID"
+          }
+        }
+      },
+      "ResultArticleSummaryList": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Result"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ArticleSummary"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ArticleSummary": {
+        "type": "object",
+        "description": "用于在列表中展示的文章摘要信息",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "文章ID (resourceId)"
+          },
+          "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string",
+            "description": "文章内容的简要概览"
+          },
+          "coverUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "author": {
+            "$ref": "#/components/schemas/UserSummary"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/ArticleStats"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ArticleStats": {
+        "type": "object",
+        "description": "文章统计数据",
+        "properties": {
+          "likes": {
+            "type": "integer",
+            "examples": [
+              102
+            ]
+          },
+          "comments": {
+            "type": "integer",
+            "examples": [
+              45
+            ]
+          },
+          "favorites": {
+            "type": "integer",
+            "examples": [
+              78
+            ]
+          }
+        }
+      },
+      "UserSummary": {
+        "type": "object",
+        "description": "用于在列表中展示的用户摘要信息",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "description": {
+            "type": "string"
+          },
+          "isFollowing": {
+            "type": "boolean",
+            "description": "当前登录用户是否已关注该用户"
+          }
+        }
+      },
+      "SubmissionCreateRequest": {
+        "type": "object",
+        "required": [
+          "resourceId"
+        ],
+        "properties": {
+          "resourceId": {
+            "type": "string",
+            "description": "要投稿的文章ID (resourceId)"
+          },
+          "recommendReason": {
+            "type": "string",
+            "description": "投稿理由或自荐语"
+          }
+        }
+      },
+      "ResultUserSummaryList": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Result"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/UserSummary"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "CommentCreateRequest": {
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "评论内容"
+          },
+          "parentId": {
+            "type": "string",
+            "description": "要回复的父评论ID。若为直接评论文章，则不传此字段。",
+            "nullable": true
+          }
+        }
+      },
+      "CollectionGroupCreateRequest": {
+        "type": "object",
+        "required": [
+          "groupName"
+        ],
+        "properties": {
+          "groupName": {
+            "type": "string",
+            "description": "新分组的名称"
+          }
+        }
+      },
+      "CollectionItemCreateRequest": {
+        "type": "object",
+        "required": [
+          "resourceId"
+        ],
+        "properties": {
+          "resourceId": {
+            "type": "string",
+            "description": "要收藏的文章ID"
+          }
+        }
+      },
+      "CollectionGroup": {
+        "type": "object",
+        "description": "收藏夹分组信息",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "groupName": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "description": "分组内收藏的文章数量"
+          }
+        }
+      },
+      "ResultCommentNode": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Result"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  },
+                  "createdAt": {
+                    "type": "string"
+                  },
+                  "userId": {
+                    "type": "string",
+                    "description": "评论者id"
+                  },
+                  "nickname": {
+                    "type": "string"
+                  },
+                  "avatarUrl": {
+                    "type": "string",
+                    "description": "评论者头像"
+                  },
+                  "status": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "content",
+                  "createdAt",
+                  "userId",
+                  "nickname"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "ResultCommentRootList": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Result"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "content": {
+                      "type": "string"
+                    },
+                    "replyCount": {
+                      "type": "integer"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "userId": {
+                      "type": "string"
+                    },
+                    "nickname": {
+                      "type": "string"
+                    },
+                    "avatarUrl": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "description": "状态"
+                    }
+                  },
+                  "required": [
+                    "userId",
+                    "nickname",
+                    "avatarUrl",
+                    "status"
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ResultCollectionGroup": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Result"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/CollectionGroup"
+              }
+            }
+          }
+        ]
+      },
+      "ResultCollectionGroupList": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Result"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CollectionGroup"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "UploadURLRequest": {
+        "type": "object",
+        "required": [
+          "fileName",
+          "fileType",
+          "fileSize",
+          "uploadType"
+        ],
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "description": "原始文件名",
+            "examples": [
+              "my-avatar.png"
+            ]
+          },
+          "fileType": {
+            "type": "string",
+            "description": "文件的MIME类型",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "fileSize": {
+            "type": "integer",
+            "description": "文件大小（字节）",
+            "examples": [
+              512000
+            ]
+          },
+          "uploadType": {
+            "type": "string",
+            "description": "上传用途的分类。后端根据此类型决定存储路径和访问权限。",
+            "enum": [
+              "avatar",
+              "resource_content",
+              "kb_cover"
+            ],
+            "examples": [
+              "avatar"
+            ]
+          }
+        }
+      },
+      "UploadURLResponseData": {
+        "type": "object",
+        "description": "包含上传所需信息的对象",
+        "properties": {
+          "uploadUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "预签名的上传URL。客户端需要向此URL以PUT方法上传文件数据。"
+          },
+          "accessUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "文件上传成功后的最终访问URL。客户端需要保存此URL，并在后续业务请求中提交。"
+          }
+        }
+      },
+      "ResultUploadURLResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Result"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/UploadURLResponseData"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "securitySchemes": {}
+  },
+  "servers": [],
+  "security": []
+}
