@@ -14,17 +14,27 @@ import com.pickyboy.yuquebackend.common.exception.BusinessException;
 import com.pickyboy.yuquebackend.common.exception.ErrorCode;
 import com.pickyboy.yuquebackend.common.utils.CurrentHolder;
 import com.pickyboy.yuquebackend.common.utils.MinioUtil;
+import com.pickyboy.yuquebackend.domain.dto.comment.CommentCreateRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.CopyResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.CreateResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.MoveResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceContentRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceInfoRequest;
-import com.pickyboy.yuquebackend.domain.entity.KnowledgeBases;
+import com.pickyboy.yuquebackend.domain.entity.Comments;
+import com.pickyboy.yuquebackend.domain.entity.Likes;
 import com.pickyboy.yuquebackend.domain.entity.Resources;
+import com.pickyboy.yuquebackend.domain.entity.Users;
+import com.pickyboy.yuquebackend.domain.entity.ViewHistories;
+import com.pickyboy.yuquebackend.domain.vo.comment.RootCommentVO;
+import com.pickyboy.yuquebackend.domain.vo.comment.SubCommentVO;
 import com.pickyboy.yuquebackend.domain.vo.resource.PublicResourceVO;
 import com.pickyboy.yuquebackend.domain.vo.resource.ShareUrlVO;
 import com.pickyboy.yuquebackend.mapper.ResourcesMapper;
-import com.pickyboy.yuquebackend.service.IKnowledgeBaseService;
+import com.pickyboy.yuquebackend.mapper.UsersMapper;
+import com.pickyboy.yuquebackend.mapper.ViewHistoriesMapper;
+import com.pickyboy.yuquebackend.service.ICommentsService;
+import com.pickyboy.yuquebackend.service.IKnowledgeBaseValidationService;
+import com.pickyboy.yuquebackend.service.ILikesService;
 import com.pickyboy.yuquebackend.service.IResourceService;
 import com.pickyboy.yuquebackend.service.IResourceVersionsService;
 
@@ -43,9 +53,12 @@ import lombok.extern.slf4j.Slf4j;
 public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources> implements IResourceService {
 
     private final IResourceVersionsService resourceVersionsService;
-    private final IKnowledgeBaseService knowledgeBaseService;
+    private final IKnowledgeBaseValidationService knowledgeBaseValidationService;
     private final MinioUtil minioUtil;
-
+    private final ViewHistoriesMapper viewHistoriesMapper;
+    private final ILikesService likesService;
+    private final ICommentsService commentsService;
+    private final UsersMapper usersMapper;
     /* 在知识库中新建资源
      * 只新建资源记录,无实际内容
      */
@@ -88,11 +101,36 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         if (resource.getUserId() != userId && resource.getVisibility() == 0) {
             throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED);
         }
+
+        // 异步记录浏览历史
+        recordViewHistoryAsync(userId, resId);
+
         // 增加访问量
         // todo: 使用Redis缓存访问量,根据时间窗口,过滤掉重复访问
         resource.setViewCount(resource.getViewCount() + 1);
         updateById(resource);
         return resource;
+    }
+
+    /**
+     * 异步记录浏览历史
+     *
+     * @param userId 用户ID
+     * @param resourceId 资源ID
+     */
+    @Async
+    public void recordViewHistoryAsync(Long userId, Long resourceId) {
+        try {
+            log.debug("异步记录浏览历史: userId={}, resourceId={}", userId, resourceId);
+            ViewHistories viewHistory = new ViewHistories();
+            viewHistory.setUserId(userId);
+            viewHistory.setResourceId(resourceId);
+            viewHistory.setLastViewAt(LocalDateTime.now());
+            viewHistoriesMapper.insertOrUpdateViewHistory(viewHistory);
+        } catch (Exception e) {
+            log.warn("记录浏览历史失败: userId={}, resourceId={}, error={}", userId, resourceId, e.getMessage());
+            // 不抛出异常，避免影响主业务流程
+        }
     }
 
     @Override
@@ -158,8 +196,8 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
     private void recursiveDeleteResource(Long parentId) {
         // 查找所有子资源
         List<Resources> children = list(
-            new LambdaQueryWrapper<Resources>()
-                .eq(Resources::getPreId, parentId)
+                new LambdaQueryWrapper<Resources>()
+                        .eq(Resources::getPreId, parentId)
         );
 
         // 递归删除子资源
@@ -274,8 +312,8 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         // 使用UpdateWrapper恢复资源，默认恢复到根节点（preId设为null）
         LambdaUpdateWrapper<Resources> updateWrapper = new LambdaUpdateWrapper<>();
         updateWrapper.eq(Resources::getId, resId)
-                    .set(Resources::getIsDeleted, false)
-                    .set(Resources::getPreId, null); // 恢复到根节点
+                .set(Resources::getIsDeleted, false)
+                .set(Resources::getPreId, null); // 恢复到根节点
 
         boolean updated = update(updateWrapper);
         if (!updated) {
@@ -332,13 +370,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         }
 
         // 验证目标知识库是否存在且有权限访问
-        KnowledgeBases targetKb = knowledgeBaseService.getById(moveRequest.getTargetKbId());
-        if (targetKb == null) {
-            throw new BusinessException(ErrorCode.KNOWLEDGE_BASE_NOT_FOUND);
-        }
-        if (!targetKb.getUserId().equals(userId)) {
-            throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED);
-        }
+        knowledgeBaseValidationService.validateKnowledgeBaseOwnership(moveRequest.getTargetKbId(), userId);
 
         // 验证目标父节点是否存在（如果不为null）
         if (moveRequest.getTargetPreId() != null) {
@@ -354,8 +386,8 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         // 使用UpdateWrapper来支持将preId设置为null（移动到根节点）
         LambdaUpdateWrapper<Resources> updateWrapper = new LambdaUpdateWrapper<>();
         updateWrapper.eq(Resources::getId, resId)
-                    .set(Resources::getKnowledgeBaseId, moveRequest.getTargetKbId())
-                    .set(Resources::getPreId, moveRequest.getTargetPreId()); // 支持设置为null
+                .set(Resources::getKnowledgeBaseId, moveRequest.getTargetKbId())
+                .set(Resources::getPreId, moveRequest.getTargetPreId()); // 支持设置为null
 
         boolean updated = update(updateWrapper);
         if (!updated) {
@@ -374,7 +406,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
      */
     private void updateChildrenKnowledgeBaseId(Long parentId, Long newKbId) {
         List<Resources> children = list(new LambdaQueryWrapper<Resources>()
-            .eq(Resources::getPreId, parentId)
+                .eq(Resources::getPreId, parentId)
         );
 
         for (Resources child : children) {
@@ -408,22 +440,17 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         // 检查源资源对应的知识库是否被删除
         validateKnowledgeBaseAccess(resource.getKnowledgeBaseId(), userId);
 
-        KnowledgeBases targetKb = knowledgeBaseService.getById(copyRequest.getTargetKbId());
-        if (targetKb == null) {
-            throw new BusinessException(ErrorCode.KNOWLEDGE_BASE_NOT_FOUND);
-        }
-        if (!targetKb.getUserId().equals(userId)) {
-            throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED);
-        }
+        // 验证目标知识库是否存在且有权限访问
+        knowledgeBaseValidationService.validateKnowledgeBaseOwnership(copyRequest.getTargetKbId(), userId);
 
         // 2. 深拷贝文件内容
         // 假设资源类型存储在resource.getType()中，如果没有则用默认值
         String uploadType = "resource";
         String newContentUrl = minioUtil.copyObject(
-            resource.getContent(),      // 源文件URL
-            resource.getTitle(),        // 使用原标题作为新文件名
-            uploadType,                 // 目标上传类型 (决定存储桶)
-            userId.toString()           // 当前用户ID
+                resource.getContent(),      // 源文件URL
+                resource.getTitle(),        // 使用原标题作为新文件名
+                uploadType,                 // 目标上传类型 (决定存储桶)
+                userId.toString()           // 当前用户ID
         );
 
         // 3. 准备并保存新的资源实体 (这里不能直接修改原resource对象)
@@ -473,7 +500,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
     private void recursiveCopyChildren(Long sourceParentId, Long newParentId, Long targetKbId) {
         // 1. 查找所有直接子节点
         List<Resources> children = list(new LambdaQueryWrapper<Resources>()
-            .eq(Resources::getPreId, sourceParentId)
+                .eq(Resources::getPreId, sourceParentId)
         );
 
         if (children.isEmpty()) {
@@ -492,6 +519,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         }
     }
 
+    // todo:
     @Override
     public ShareUrlVO generateResourceShareLink(Long resId) {
         log.info("生成资源分享链接: resId={}", resId);
@@ -507,31 +535,182 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
     @Override
     public void likeArticle(Long articleId) {
         log.info("点赞文章: articleId={}", articleId);
-        throw new UnsupportedOperationException("此方法尚未实现");
+        Long userId = CurrentHolder.getCurrentUserId();
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        Resources resource = getById(articleId);
+        if (resource == null) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
+        }
+        // 查询是否已点赞
+        Likes like = likesService.getOne(new LambdaQueryWrapper<Likes>()
+                .eq(Likes::getUserId, userId)
+                .eq(Likes::getResourceId, articleId)
+        );
+        if (like != null) {
+            throw new BusinessException(ErrorCode.RESOURCE_ALREADY_LIKED);
+        }
+        // 点赞
+        Likes newLike = new Likes();
+        newLike.setUserId(userId);
+        newLike.setResourceId(articleId);
+        likesService.save(newLike);
+        resource.setLikeCount(resource.getLikeCount() + 1);
+        updateById(resource);
+
+        // todo: 触发计分,用于推荐系统
     }
 
     @Override
     public void unlikeArticle(Long articleId) {
         log.info("取消点赞文章: articleId={}", articleId);
-        throw new UnsupportedOperationException("此方法尚未实现");
+        Long userId = CurrentHolder.getCurrentUserId();
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        Resources resource = getById(articleId);
+        if (resource == null) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
+        }
+        Likes like = likesService.getOne(new LambdaQueryWrapper<Likes>()
+                .eq(Likes::getUserId, userId)
+                .eq(Likes::getResourceId, articleId)
+        );
+        if (like == null) {
+            throw new BusinessException(ErrorCode.RESOURCE_ALREADY_UNLIKED);
+        }
+        likesService.removeById(like.getId());
+        resource.setLikeCount(resource.getLikeCount() - 1);
+        updateById(resource);
+
+        // todo: 触发计分,用于推荐系统
     }
 
     @Override
-    public List<?> listArticleComments(Long articleId) {
-        log.info("获取文章评论列表: articleId={}", articleId);
-        throw new UnsupportedOperationException("此方法尚未实现");
+    public List<RootCommentVO> listArticleComments(Long articleId, Integer page, Integer limit) {
+        log.info("获取文章根评论列表: articleId={}, page={}, limit={}", articleId, page, limit);
+        Long userId = CurrentHolder.getCurrentUserId();
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        Resources resource = getById(articleId);
+        if (resource == null) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
+        }
+        if (resource.getVisibility() == 0 && !resource.getUserId().equals(userId)) {
+            throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED);
+        }
+        // 查询根评论(preId为null)
+        List<RootCommentVO> comments = commentsService.listRootComments(articleId, (page - 1) * limit, limit);
+        return comments;
     }
 
     @Override
-    public Object createComment(Long articleId, Object commentRequest) {
-        log.info("发表评论: articleId={}", articleId);
-        throw new UnsupportedOperationException("此方法尚未实现");
+    public List<SubCommentVO> listCommentReplies(Long commentId, Integer page, Integer limit) {
+        log.info("获取评论回复列表: commentId={}, page={}, limit={}", commentId, page, limit);
+        Long userId = CurrentHolder.getCurrentUserId();
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        // 直接查询,父评论删除不影响子评论
+        List<SubCommentVO> comments = commentsService.listSubComments(commentId, (page - 1) * limit, limit);
+        return comments;
+    }
+
+    @Override
+    public RootCommentVO createComment(Long articleId, CommentCreateRequest commentRequest) {
+        log.info("发表评论: articleId={}, request={}", articleId, commentRequest);
+        Long userId = CurrentHolder.getCurrentUserId();
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        // 1. 验证文章是否存在
+        Resources resource = getById(articleId);
+        if (resource == null) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
+        }
+        if (resource.getVisibility() == 0 && !resource.getUserId().equals(userId)) {
+            throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED);
+        }
+
+        // 2. 构造评论
+        Comments comment = new Comments();
+        comment.setResourceId(articleId);
+        comment.setUserId(userId);
+        comment.setContent(commentRequest.getContent());
+        comment.setPreId(commentRequest.getParentId());
+        if (commentRequest.getParentId() != null) {
+            Comments preComment = commentsService.getById(commentRequest.getParentId());
+            if (preComment == null) {
+                throw new BusinessException(ErrorCode.COMMENT_NOT_FOUND);
+            }
+            comment.setRootId(preComment.getRootId() == null ? preComment.getId() : preComment.getRootId());
+            preComment.setReplyCount(preComment.getReplyCount() + 1);
+            if(preComment.getRootId() != null) {
+                Comments rootComment = commentsService.getById(preComment.getRootId());
+                if (rootComment != null) {
+                    rootComment.setReplyCount(rootComment.getReplyCount() + 1);
+                    commentsService.updateById(rootComment);
+                }
+            }
+            commentsService.updateById(preComment);
+        }
+        commentsService.save(comment);
+        resource.setCommentCount(resource.getCommentCount() + 1);
+        updateById(resource);
+        RootCommentVO rootCommentVO = new RootCommentVO();
+        rootCommentVO.setId(comment.getId());
+        rootCommentVO.setContent(comment.getContent());
+        rootCommentVO.setCreatedAt(comment.getCreatedAt());
+        rootCommentVO.setUserId(comment.getUserId());
+        rootCommentVO.setReplyCount(comment.getReplyCount());
+        rootCommentVO.setStatus(comment.getStatus());
+        Users user = usersMapper.selectById(comment.getUserId());
+        if (user != null) {
+            rootCommentVO.setNickname(user.getNickname());
+            rootCommentVO.setAvatarUrl(user.getAvatarUrl());
+        }
+        return rootCommentVO;
+
     }
 
     @Override
     public void deleteComment(Long commentId) {
         log.info("删除评论: commentId={}", commentId);
-        throw new UnsupportedOperationException("此方法尚未实现");
+        Long userId = CurrentHolder.getCurrentUserId();
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        Comments comment = commentsService.getById(commentId);
+        if (comment == null) {
+            throw new BusinessException(ErrorCode.COMMENT_NOT_FOUND);
+        }
+        if (comment.getUserId().equals(userId)) {
+            Resources resource = getById(comment.getResourceId());
+            if (resource != null) {
+                resource.setCommentCount(resource.getCommentCount() - 1);
+                updateById(resource);
+            }
+            if (comment.getPreId() != null) {
+                Comments preComment = commentsService.getById(comment.getPreId());
+                if (preComment != null) {
+                    preComment.setReplyCount(preComment.getReplyCount() - 1);
+                    commentsService.updateById(preComment);
+                }
+            }
+            if (comment.getRootId() != null&&!comment.getRootId().equals(comment.getId())) {
+                Comments rootComment = commentsService.getById(comment.getRootId());
+                if (rootComment != null) {
+                    rootComment.setReplyCount(rootComment.getReplyCount() - 1);
+                    commentsService.updateById(rootComment);
+                }
+            }
+            commentsService.removeById(commentId);
+
+        } else {
+            throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED);
+        }
     }
 
     @Override
@@ -560,12 +739,6 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
      * 验证知识库访问权限（检查知识库是否存在且未被删除）
      */
     private void validateKnowledgeBaseAccess(Long kbId, Long userId) {
-        KnowledgeBases kb = knowledgeBaseService.getById(kbId);
-        if (kb == null) {
-            throw new BusinessException(ErrorCode.KNOWLEDGE_BASE_NOT_FOUND);
-        }
-        if (!kb.getUserId().equals(userId)) {
-            throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED, "无权访问该知识库");
-        }
+        knowledgeBaseValidationService.validateKnowledgeBaseAccess(kbId, userId);
     }
 }
