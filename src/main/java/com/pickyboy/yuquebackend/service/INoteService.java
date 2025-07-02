@@ -14,16 +14,21 @@ import java.util.List;
 /**
  * 小记服务接口
  *
- * @author pickyboy
+ * @author shiqi
  */
 public interface INoteService extends IService<Notes> {
 
     /**
      * 获取小记列表
      *
+     * @param tagId 标签ID（可选）
+     * @param page 页码
+     * @param limit 每页数量
+     * @param sortBy 排序字段
+     * @param order 排序方式
      * @return 小记列表
      */
-    PageResult<NoteListVO> getNoteList(QueryNotesRequest queryNotesRequest);
+    List<NoteListVO> getNoteList(Long tagId, Integer page, Integer limit, String sortBy, String order);
 
     /**
      * 创建小记
@@ -52,31 +57,33 @@ public interface INoteService extends IService<Notes> {
     /**
      * 更新小记
      *
+     * @param noteId 小记ID
      * @param updateNoteRequest 更新请求
-     * @return 更新后的小记
      */
-    NoteDetailVO updateNote(UpdateNoteRequest updateNoteRequest);
+    void updateNote(Long noteId, UpdateNoteRequest updateNoteRequest);
 
     /**
      * 批量删除小记 (逻辑删除)
      *
      * @param deleteNotesRequest 删除请求
      */
-    Boolean deleteNotes(DeleteNotesRequest deleteNotesRequest);
+    void deleteNotes(DeleteNotesRequest deleteNotesRequest);
 
     /**
      * 获取小记的标签列表
      *
      * @param noteId 小记ID
+     * @return 标签列表
      */
     List<TagSimpleVO> getNoteTags(Long noteId);
 
     /**
      * 设置小记的标签
      *
+     * @param noteId 小记ID
      * @param setNoteTagsRequest 设置小记标签请求
      */
-    Boolean setNoteTags(SetNoteTagsRequest setNoteTagsRequest);
+    void setNoteTags(Long noteId, SetNoteTagsRequest setNoteTagsRequest);
 
     /**
      * 移除小记的某个标签

@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
  * 小记详情VO (新增)
  */
@@ -17,5 +19,5 @@ public class NoteDetailVO {
     private String content;   // 完整内容
     private String createdAt;
     private String updatedAt;
-    private TagSimpleVO[] tags; // 使用TagSimpleVO
+    private List<TagSimpleVO> tags; // 使用TagSimpleVO
 }

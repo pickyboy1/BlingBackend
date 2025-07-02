@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
  * 小记列表VO (使用TagSimpleVO)
  *
@@ -19,5 +21,5 @@ public class NoteListVO {
     private String content;   // 截取前200字符作为摘要
     private String createdAt;
     private String updatedAt;
-    private TagSimpleVO[] tags; // 使用TagSimpleVO
+    private List<TagSimpleVO> tags; // 使用TagSimpleVO
 }

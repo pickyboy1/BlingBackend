@@ -24,5 +24,4 @@ public class TagSimpleVO {
      */
     private String name;
 
-    private String createdAt;
 }

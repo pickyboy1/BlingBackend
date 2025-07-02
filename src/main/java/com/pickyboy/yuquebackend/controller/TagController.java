@@ -35,12 +35,19 @@ public class TagController {
      * 获取用户标签列表
      * GET /tags
      *
-     * @param queryTagsRequest 查询请求
+     * @param page 页码
+     * @param limit 每页数量
+     * @param sortBy 排序字段
+     * @param order 排序方式
      * @return 操作结果
      */
     @GetMapping("/tags")
-    public Result<PageResult<TagVO>> getUserTags(@Valid @RequestBody QueryTagsRequest queryTagsRequest) {
-        PageResult<TagVO> result = tagService.getUserTags(queryTagsRequest);
+    public Result<List<TagVO>> getUserTags(
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "30") Integer limit,
+            @RequestParam(defaultValue = "count") String sortBy,
+            @RequestParam(defaultValue = "desc") String order) {
+        List<TagVO> result = tagService.getUserTags(page, limit, sortBy, order);
         return Result.success(result);
     }
 
@@ -66,21 +73,23 @@ public class TagController {
      * @return 操作结果
      */
     @DeleteMapping("/tags")
-    public Result<Boolean> deleteTags(@Valid @RequestBody DeleteTagsRequest deleteRequest) {
-        Boolean result = tagService.deleteTags(deleteRequest);
-        return Result.success(result);
+    public Result<Void> deleteTags(@Valid @RequestBody DeleteTagsRequest deleteRequest) {
+        tagService.deleteTags(deleteRequest);
+        return Result.success(null);
     }
 
     /**
      * 修改标签
-     * PATCH /tags
+     * PATCH /tags/{tagId}
      *
+     * @param tagId 标签ID
      * @param updateRequest 修改请求
      * @return 操作结果
      */
-    @PatchMapping("/tags")
-    public Result<TagVO> updateTag(@Valid @RequestBody UpdateTagRequest updateRequest) {
-        TagVO result = tagService.updateTag(updateRequest);
-        return Result.success(result);
+    @PatchMapping("/tags/{tagId}")
+    public Result<Void> updateTag(@PathVariable Long tagId,
+            @Valid @RequestBody UpdateTagRequest updateRequest) {
+        tagService.updateTag(tagId,updateRequest);
+        return Result.success(null);
     }
 }

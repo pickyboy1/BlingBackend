@@ -4,6 +4,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * 创建小记请求DTO
  *
@@ -18,4 +20,9 @@ public class CreateNoteRequest {
     @Size(max = 65535, message = "小记内容长度不能超过65535个字符")
     private String content;
 
+    /**
+     * 关联的标签ID列表（可选）
+     */
+    @Size(max = 50, message = "一个小记最多关联50个标签")
+    private List<String> tagIds;
 }

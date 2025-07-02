@@ -36,12 +36,21 @@ public class NoteController {
      * 获取小记列表
      * GET /notes
      *
-     * @param queryNotesRequest 查询请求
+     * @param tagId 标签ID（可选）
+     * @param page 页码
+     * @param limit 每页数量
+     * @param sortBy 排序字段
+     * @param order 排序方式
      * @return 小记列表
      */
     @GetMapping("/notes")
-    public Result<PageResult<NoteListVO>> getNoteList(@Valid @RequestBody QueryNotesRequest queryNotesRequest) {
-        PageResult<NoteListVO> result = noteService.getNoteList(queryNotesRequest);
+    public Result<List<NoteListVO>> getNoteList(
+            @RequestParam(required = false) Long tagId,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "20") Integer limit,
+            @RequestParam(defaultValue = "updatedAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String order) {
+        List<NoteListVO> result = noteService.getNoteList(tagId, page, limit, sortBy, order);
         return Result.success(result);
     }
 
@@ -62,13 +71,13 @@ public class NoteController {
      * 批量删除小记
      * DELETE /notes
      *
-     * @param deleteNotesRequest 创建请求
+     * @param deleteNotesRequest 删除请求
      * @return 操作结果
      */
     @DeleteMapping("/notes")
-    public Result<Boolean> deleteNotes(@Valid @RequestBody DeleteNotesRequest deleteNotesRequest) {
-        Boolean result = noteService.deleteNotes(deleteNotesRequest);
-        return Result.success(result);
+    public Result<Void> deleteNotes(@Valid @RequestBody DeleteNotesRequest deleteNotesRequest) {
+        noteService.deleteNotes(deleteNotesRequest);
+        return Result.success(null);
     }
 
     /**
@@ -86,15 +95,18 @@ public class NoteController {
 
     /**
      * 编辑小记
-     * PATCH /notes
+     * PATCH /notes/{noteId}
      *
+     * @param noteId 小记ID
      * @param updateNoteRequest 更新请求
-     * @return 更新后的小记
+     * @return 操作结果
      */
-    @PatchMapping("/notes")
-    public Result<NoteDetailVO> updateNote(@Valid @RequestBody UpdateNoteRequest updateNoteRequest) {
-        NoteDetailVO result = noteService.updateNote(updateNoteRequest);
-        return Result.success(result);
+    @PatchMapping("/notes/{noteId}")
+    public Result<Void> updateNote(
+            @PathVariable Long noteId,
+            @Valid @RequestBody UpdateNoteRequest updateNoteRequest) {
+        noteService.updateNote(noteId, updateNoteRequest);
+        return Result.success(null);
     }
 
     /**
@@ -112,15 +124,18 @@ public class NoteController {
 
     /**
      * 设置小记的标签
-     * PUT /notes/tags
+     * PUT /notes/{noteId}/tags
      *
+     * @param noteId 小记ID
      * @param setNoteTagsRequest 设置小记标签请求
      * @return 操作结果
      */
-    @PutMapping("/notes/tags")
-    public Result<Boolean> setNoteTags(@Valid @RequestBody SetNoteTagsRequest setNoteTagsRequest) {
-        Boolean result = noteService.setNoteTags(setNoteTagsRequest);
-        return Result.success(result);
+    @PutMapping("/notes/{noteId}/tags")
+    public Result<Void> setNoteTags(
+            @PathVariable Long noteId,
+            @Valid @RequestBody SetNoteTagsRequest setNoteTagsRequest) {
+        noteService.setNoteTags(noteId, setNoteTagsRequest);
+        return Result.success(null);
     }
 
 }

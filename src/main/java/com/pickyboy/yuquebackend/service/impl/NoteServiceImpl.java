@@ -36,7 +36,7 @@ import org.springframework.util.StringUtils;
 /**
  * 小记服务实现类
  *
- * @author pickyboy
+ * @author shiqi
  */
 @Slf4j
 @Service
@@ -50,43 +50,67 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
     private INoteTagMapService noteTagMapService;
 
     @Override
-    public PageResult<NoteListVO> getNoteList(QueryNotesRequest queryNotesRequest) {
+    public List<NoteListVO> getNoteList(Long tagId, Integer page, Integer limit, String sortBy, String order) {
         Long userId = CurrentHolder.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
 
-        Page<Notes> page = new Page<>(queryNotesRequest.getPageNum(), queryNotesRequest.getPageSize());
+        // 构建分页对象
+        Page<Notes> pageObj = new Page<>(page, limit);
 
+        // 构建查询条件
         LambdaQueryWrapper<Notes> wrapper = new LambdaQueryWrapper<Notes>()
-                .eq(Notes::getUserId, userId)
-                .orderByDesc(Notes::getUpdatedAt);
+                .eq(Notes::getUserId, userId);
 
-        // 关键词搜索
-        if (StringUtils.hasText(queryNotesRequest.getKeyword())) {
-            wrapper.like(Notes::getContent, queryNotesRequest.getKeyword());
+        // 如果有标签筛选
+        if (tagId != null) {
+            // 先查询出该标签关联的所有小记ID
+            List<Long> noteIds = noteTagMapService.list(
+                            new LambdaQueryWrapper<NoteTagMap>()
+                                    .eq(NoteTagMap::getTagId, tagId)
+                    ).stream()
+                    .map(NoteTagMap::getNoteId)
+                    .collect(Collectors.toList());
+
+            if (noteIds.isEmpty()) {
+                return new ArrayList<>();
+            }
+
+            wrapper.in(Notes::getId, noteIds);
         }
 
-        Page<Notes> notePage = page(page, wrapper);
+        // 设置排序
+        if ("createdAt".equals(sortBy)) {
+            if ("asc".equals(order)) {
+                wrapper.orderByAsc(Notes::getCreatedAt);
+            } else {
+                wrapper.orderByDesc(Notes::getCreatedAt);
+            }
+        } else {
+            // 默认按 updatedAt 排序
+            if ("asc".equals(order)) {
+                wrapper.orderByAsc(Notes::getUpdatedAt);
+            } else {
+                wrapper.orderByDesc(Notes::getUpdatedAt);
+            }
+        }
 
-        // 转换为VO并获取标签信息
+        Page<Notes> notePage = page(pageObj, wrapper);
+
+        // 转换为VO
         List<NoteListVO> voList = notePage.getRecords().stream()
                 .map(this::convertToNoteListVO)
                 .collect(Collectors.toList());
 
-        // 如果有标签筛选，需要进一步过滤
-        if (queryNotesRequest.getTagIds() != null && queryNotesRequest.getTagIds().length > 0) {
-            voList = filterByTags(voList, queryNotesRequest.getTagIds());
-        }
-
-        return new PageResult<>(notePage.getTotal(), voList);
+        return voList;
     }
 
     @Override
     @Transactional
     public NoteDetailVO createNote(CreateNoteRequest createNoteRequest) {
-        // TODO: 测试创建小记逻辑
-        //log.info("创建新的小记: title={}", createNoteRequest.getTitle());
+        // TODO: 测试创建小记逻辑（还未修改完成）
+        log.info("创建新的小记: title={}");
 
         Long userId = CurrentHolder.getCurrentUserId();
         if (userId == null) {
@@ -97,13 +121,22 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
         Notes note = new Notes();
         note.setUserId(userId);
         note.setContent(createNoteRequest.getContent());
+        // 从内容生成title
+        note.setTitle(generateTitleFromContent(createNoteRequest.getContent()));
 
         boolean saved = save(note);
         if (!saved) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "小记创建失败");
         }
 
-        return convertToNoteDetailVO(note);
+        // 处理标签关联
+        if (createNoteRequest.getTagIds() != null && !createNoteRequest.getTagIds().isEmpty()) {
+            setNoteTagsInternal(note.getId(), createNoteRequest.getTagIds());
+        }
+
+        // 重新查询保存后的完整数据（包含自动生成的时间戳）
+        Notes savedNote = getById(note.getId());
+        return convertToNoteDetailVO(savedNote);
     }
 
     @Override
@@ -130,12 +163,11 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
     }
 
     @Override
-    public NoteDetailVO updateNote(UpdateNoteRequest updateNoteRequest) {
-        // TODO: 测试更新小记逻辑
-        Long userId = CurrentHolder.getCurrentUserId();
-        Long noteId = updateNoteRequest.getNoteId();
-
+    public void updateNote(Long noteId, UpdateNoteRequest updateNoteRequest) {
+        // TODO: 测试更新小记逻辑（还未完成修改）
         log.info("更新小记: noteId={}", noteId);
+
+        Long userId = CurrentHolder.getCurrentUserId();
 
         // 验证小记是否属于当前用户
         Notes note = getOne(
@@ -148,43 +180,49 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "小记不存在");
         }
 
-        // 更新小记
+        // 更新小记内容和标题
         note.setContent(updateNoteRequest.getContent());
+        // 从新内容生成新的title
+        note.setTitle(generateTitleFromContent(updateNoteRequest.getContent()));
 
         boolean updated = updateById(note);
         if (!updated) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "小记更新失败");
         }
-
-        return convertToNoteDetailVO(note);
-
     }
 
     @Override
-    public Boolean deleteNotes(DeleteNotesRequest deleteNotesRequest) {
+    public void deleteNotes(DeleteNotesRequest deleteNotesRequest) {
         // TODO: 测试删除小记逻辑
+        List<String> noteIds = deleteNotesRequest.getNoteIds();
+
+        log.info("批量删除小记: noteIds={}", noteIds);
+
         Long userId = CurrentHolder.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
 
-        Long[] noteIds = deleteNotesRequest.getNoteIds();
+        // 转换为Long类型
+        List<Long> longNoteIds = noteIds.stream()
+                .map(Long::valueOf)
+                .collect(Collectors.toList());
 
         // 验证小记是否属于当前用户
         long count = count(
                 new LambdaQueryWrapper<Notes>()
                         .eq(Notes::getUserId, userId)
-                        .in(Notes::getId, Arrays.asList(noteIds))
+                        .in(Notes::getId, longNoteIds)
         );
 
-        if (count != noteIds.length) {
+        if (count != longNoteIds.size()) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "存在无效的小记ID");
         }
 
         // 获取要删除的小记关联的标签，用于更新标签引用计数
         List<NoteTagMap> relationsToDelete = noteTagMapService.list(
                 new LambdaQueryWrapper<NoteTagMap>()
-                        .in(NoteTagMap::getNoteId, Arrays.asList(noteIds))
+                        .in(NoteTagMap::getNoteId, longNoteIds)
         );
 
         // 统计每个标签的引用次数减少量
@@ -194,10 +232,10 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
                         Collectors.counting()
                 ));
 
-        // 删除小记（逻辑删除）
-        boolean notesDeleted = removeByIds(Arrays.asList(noteIds));
+        // 删除小记
+        boolean notesDeleted = removeByIds(longNoteIds);
 
-        // 删除小记-标签关联关系（逻辑删除）
+        // 删除小记-标签关联关系
         if (!relationsToDelete.isEmpty()) {
             List<Long> relationIds = relationsToDelete.stream()
                     .map(NoteTagMap::getId)
@@ -226,18 +264,21 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "小记删除失败");
         }
 
-        log.info("批量删除小记成功，数量: {}, IDs: {}", noteIds.length, Arrays.toString(noteIds));
-
-        return true;
+        log.info("批量删除小记成功，数量: {}", longNoteIds.size());
     }
 
     @Override
     @Transactional
-    public Boolean setNoteTags(SetNoteTagsRequest setNoteTagsRequest) {
-        // TODO:测试获取小记的标签列表逻辑
+    public void setNoteTags(Long noteId, SetNoteTagsRequest setNoteTagsRequest) {
+        // TODO:测试设置小记的标签逻辑
+        List<String> tagIds = setNoteTagsRequest.getTagIds();
+
+        log.info("设置小记标签: noteId={}, tagIds={}", noteId, tagIds);
+
         Long userId = CurrentHolder.getCurrentUserId();
-        Long noteId = setNoteTagsRequest.getNoteId();
-        Long[] newTagIds = setNoteTagsRequest.getTagIds();
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
 
         // 验证小记是否属于当前用户
         Notes note = getOne(
@@ -250,20 +291,217 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "小记不存在");
         }
 
+        setNoteTagsInternal(noteId, tagIds);
+    }
+
+    @Override
+    public List<TagSimpleVO> getNoteTags(Long noteId){
+        // TODO: 测试获取小记标签列表逻辑
+        log.info("获取小记标签: noteId={}", noteId);
+
+        Long userId = CurrentHolder.getCurrentUserId();
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+
+        // 验证小记是否属于当前用户
+        Notes note = getOne(
+                new LambdaQueryWrapper<Notes>()
+                        .eq(Notes::getId, noteId)
+                        .eq(Notes::getUserId, userId)
+        );
+
+        if (note == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "小记不存在");
+        }
+
+        // 获取小记关联的标签ID
+        List<Long> tagIds = noteTagMapService.list(
+                        new LambdaQueryWrapper<NoteTagMap>()
+                                .eq(NoteTagMap::getNoteId, noteId)
+                ).stream()
+                .map(NoteTagMap::getTagId)
+                .collect(Collectors.toList());
+
+        if (tagIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 获取标签详情
+        List<Tags> tags = tagService.list(
+                new LambdaQueryWrapper<Tags>()
+                        .in(Tags::getId, tagIds)
+                        .orderByAsc(Tags::getName)
+        );
+
+        return tags.stream()
+                .map(this::convertToTagSimpleVO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public void removeNoteTag(Long noteId, Long tagId) {
+        // TODO: 实现移除小记标签逻辑
+        log.info("移除小记标签: noteId={}, tagId={}", noteId, tagId);
+        throw new UnsupportedOperationException("待实现");
+    }
+
+    @Override
+    public List<?> searchNotes(String keyword) {
+        // TODO: 实现搜索小记逻辑
+        log.info("搜索小记: keyword={}", keyword);
+        throw new UnsupportedOperationException("待实现");
+    }
+
+    /**
+     * 转换为NoteDetailVO
+     */
+    private NoteDetailVO convertToNoteDetailVO(Notes note) {
+        NoteDetailVO vo = new NoteDetailVO();
+        vo.setId(String.valueOf(note.getId()));
+        vo.setTitle(note.getTitle());
+        vo.setContent(note.getContent());
+
+        // 设置时间字段
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        if (note.getCreatedAt() != null) {
+            vo.setCreatedAt(note.getCreatedAt().format(formatter));
+        }
+        if (note.getUpdatedAt() != null) {
+            vo.setUpdatedAt(note.getUpdatedAt().format(formatter));
+        }
+
+        // 获取关联的标签
+        List<TagSimpleVO> tags = getNoteTags(note.getId());
+        vo.setTags(tags);
+
+        return vo;
+    }
+
+
+    /**
+     * 转换为NoteListVO
+     */
+    private NoteListVO convertToNoteListVO(Notes note) {
+        NoteListVO vo = new NoteListVO();
+        vo.setId(String.valueOf(note.getId()));
+        vo.setTitle(note.getTitle());
+
+        // 设置时间字段 - 注意：列表页面通常只需要updatedAt
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        if (note.getUpdatedAt() != null) {
+            vo.setUpdatedAt(note.getUpdatedAt().format(formatter));
+        }
+
+        // 根据你的需求，如果列表页面也需要content，取消下面的注释
+        // 添加内容摘要（前200字符） - 根据你的反馈，这个可能不需要
+        // vo.setContent(generateContentSummary(note.getContent()));
+
+        // 获取关联的标签 - 根据你的反馈，这个可能不需要
+        // List<TagSimpleVO> tags = getNoteTags(note.getId());
+        // vo.setTags(tags);
+
+        return vo;
+    }
+
+    /**
+     * 从content生成title（前200字符）
+     */
+    private String generateTitleFromContent(String content) {
+        if (content == null || content.trim().isEmpty()) {
+            return "无标题";
+        }
+
+        String trimmedContent = content.trim();
+
+        // 移除多余的空白字符和换行符，用空格替代
+        String cleanedContent = trimmedContent.replaceAll("\\s+", " ");
+
+        if (cleanedContent.length() <= 200) {
+            return cleanedContent;
+        }
+
+        // 截取前200个字符，并尝试在最后一个完整的词处截断
+        String truncated = cleanedContent.substring(0, 200);
+
+        // 查找最后一个空格、句号、感叹号或问号的位置
+        int lastPunctuation = Math.max(
+                Math.max(truncated.lastIndexOf(' '), truncated.lastIndexOf('。')),
+                Math.max(truncated.lastIndexOf('！'), truncated.lastIndexOf('？'))
+        );
+
+        // 如果找到了合适的截断点且位置合理（不要太靠前）
+        if (lastPunctuation > 150) {
+            return truncated.substring(0, lastPunctuation) + "...";
+        }
+
+        return truncated + "...";
+    }
+
+    // 新增：生成内容摘要的方法
+    private String generateContentSummary(String content) {
+        if (content == null || content.trim().isEmpty()) {
+            return "";
+        }
+
+        String trimmedContent = content.trim();
+        String cleanedContent = trimmedContent.replaceAll("\\s+", " ");
+
+        if (cleanedContent.length() <= 200) {
+            return cleanedContent;
+        }
+
+        String truncated = cleanedContent.substring(0, 200);
+
+        // 查找最后一个合适的截断点
+        int lastPunctuation = Math.max(
+                Math.max(truncated.lastIndexOf(' '), truncated.lastIndexOf('。')),
+                Math.max(truncated.lastIndexOf('！'), truncated.lastIndexOf('？'))
+        );
+
+        if (lastPunctuation > 150) {
+            return truncated.substring(0, lastPunctuation) + "...";
+        }
+
+        return truncated + "...";
+    }
+
+    /**
+     * 转换为TagSimpleVO
+     */
+    private TagSimpleVO convertToTagSimpleVO(Tags tag) {
+        TagSimpleVO vo = new TagSimpleVO();
+        vo.setId(String.valueOf(tag.getId()));
+        vo.setName(tag.getName());
+
+        // 不设置时间字段，因为：
+        // 1. TagSimpleVO是简化版本，主要用于显示标签基本信息
+        // 2. 小记的时间信息已经在NoteDetailVO的根级别提供
+        // 3. 如果需要在标签级别显示小记时间，考虑使用专门的VO类
+
+        return vo;
+    }
+
+    /**
+     * 内部方法：设置小记标签关联
+     */
+    private void setNoteTagsInternal(Long noteId, List<String> tagIds) {
         // 如果提供了标签ID，验证标签是否属于当前用户
-        if (newTagIds != null && newTagIds.length > 0) {
-            List<Long> validTagIds = Arrays.stream(newTagIds)
+        if (tagIds != null && !tagIds.isEmpty()) {
+            List<Long> longTagIds = tagIds.stream()
                     .filter(Objects::nonNull)
+                    .map(Long::valueOf)
                     .collect(Collectors.toList());
 
-            if (!validTagIds.isEmpty()) {
+            if (!longTagIds.isEmpty()) {
+                Long userId = CurrentHolder.getCurrentUserId();
                 long tagCount = tagService.count(
                         new LambdaQueryWrapper<Tags>()
                                 .eq(Tags::getUserId, userId)
-                                .in(Tags::getId, validTagIds)
+                                .in(Tags::getId, longTagIds)
                 );
 
-                if (tagCount != validTagIds.size()) {
+                if (tagCount != longTagIds.size()) {
                     throw new BusinessException(ErrorCode.PARAMS_ERROR, "存在无效的标签ID");
                 }
             }
@@ -279,9 +517,10 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
                 .map(NoteTagMap::getTagId)
                 .collect(Collectors.toSet());
 
-        Set<Long> newTagIdSet = newTagIds != null ?
-                Arrays.stream(newTagIds)
+        Set<Long> newTagIdSet = tagIds != null ?
+                tagIds.stream()
                         .filter(Objects::nonNull)
+                        .map(Long::valueOf)
                         .collect(Collectors.toSet()) :
                 new HashSet<>();
 
@@ -338,157 +577,5 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
 
         log.info("设置小记标签成功，noteId: {}, 添加: {}, 删除: {}",
                 noteId, toAdd, toRemove);
-
-        return true;
-    }
-
-    @Override
-    public List<TagSimpleVO> getNoteTags(Long noteId){
-        // TODO: 测试为小记添加标签
-        log.info("为小记添加标签: noteId={}", noteId);
-
-        Long userId = CurrentHolder.getCurrentUserId();
-        if (userId == null) {
-            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
-        }
-
-        // 验证小记是否属于当前用户
-        Notes note = getOne(
-                new LambdaQueryWrapper<Notes>()
-                        .eq(Notes::getId, noteId)
-                        .eq(Notes::getUserId, userId)
-        );
-
-        if (note == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "小记不存在");
-        }
-
-        // 获取小记关联的标签ID
-        List<Long> tagIds = noteTagMapService.list(
-                        new LambdaQueryWrapper<NoteTagMap>()
-                                .eq(NoteTagMap::getNoteId, noteId)
-                ).stream()
-                .map(NoteTagMap::getTagId)
-                .collect(Collectors.toList());
-
-        if (tagIds.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        // 获取标签详情
-        List<Tags> tags = tagService.list(
-                new LambdaQueryWrapper<Tags>()
-                        .in(Tags::getId, tagIds)
-                        .orderByAsc(Tags::getName)
-        );
-
-        return tags.stream()
-                .map(this::convertToTagSimpleVO)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public void removeNoteTag(Long noteId, Long tagId) {
-        // TODO: 实现移除小记标签逻辑
-        log.info("移除小记标签: noteId={}, tagId={}", noteId, tagId);
-        throw new UnsupportedOperationException("待实现");
-    }
-
-    @Override
-    public List<?> searchNotes(String keyword) {
-        // TODO: 实现搜索小记逻辑
-        log.info("搜索小记: keyword={}", keyword);
-        throw new UnsupportedOperationException("待实现");
-    }
-
-    private NoteDetailVO convertToNoteDetailVO(Notes note) {
-        NoteDetailVO vo = new NoteDetailVO();
-        vo.setId(String.valueOf(note.getId()));
-        vo.setTitle(generateTitleFromContent(note.getContent())); // 生成title
-        vo.setContent(note.getContent());
-        vo.setCreatedAt(note.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        vo.setUpdatedAt(note.getUpdatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-
-        // 获取关联的标签
-        List<TagSimpleVO> tags = getNoteTags(note.getId());
-        vo.setTags(tags.toArray(new TagSimpleVO[0]));
-
-        return vo;
-    }
-
-    private NoteListVO convertToNoteListVO(Notes note) {
-        NoteListVO vo = new NoteListVO();
-        vo.setId(String.valueOf(note.getId()));
-        vo.setTitle(generateTitleFromContent(note.getContent())); // 生成title
-
-        // 截取前200字符作为摘要
-        String content = note.getContent();
-        if (content != null && content.length() > 200) {
-            content = content.substring(0, 200) + "...";
-        }
-        vo.setContent(content);
-        vo.setCreatedAt(note.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        vo.setUpdatedAt(note.getUpdatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-
-        // 获取关联的标签
-        List<TagSimpleVO> tags = getNoteTags(note.getId());
-        vo.setTags(tags.toArray(new TagSimpleVO[0]));
-
-        return vo;
-    }
-
-    /**
-     * 从content生成title（前200字符）
-     */
-    private String generateTitleFromContent(String content) {
-        if (content == null || content.trim().isEmpty()) {
-            return "";
-        }
-
-        String trimmedContent = content.trim();
-        if (trimmedContent.length() <= 200) {
-            return trimmedContent;
-        }
-
-        return trimmedContent.substring(0, 200);
-    }
-
-    /**
-     * 转换为TagSimpleVO
-     */
-    private TagSimpleVO convertToTagSimpleVO(Tags tag) {
-        TagSimpleVO vo = new TagSimpleVO();
-        vo.setId(String.valueOf(tag.getId()));
-        vo.setName(tag.getName());
-        vo.setCreatedAt(tag.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        return vo;
-    }
-
-    /**
-     * 根据标签筛选小记列表
-     */
-    private List<NoteListVO> filterByTags(List<NoteListVO> noteList, Long[] tagIds) {
-        if (tagIds == null || tagIds.length == 0) {
-            return noteList;
-        }
-
-        Set<Long> filterTagIds = Arrays.stream(tagIds)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-
-        if (filterTagIds.isEmpty()) {
-            return noteList;
-        }
-
-        return noteList.stream()
-                .filter(note -> {
-                    Set<Long> noteTagIds = Arrays.stream(note.getTags())
-                            .map(tag -> Long.valueOf(tag.getId()))
-                            .collect(Collectors.toSet());
-
-                    // 检查是否包含任一筛选标签
-                    return !Collections.disjoint(noteTagIds, filterTagIds);
-                })
-                .collect(Collectors.toList());
     }
 }

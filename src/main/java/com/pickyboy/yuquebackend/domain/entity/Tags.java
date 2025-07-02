@@ -45,8 +45,14 @@ public class Tags implements Serializable {
      */
     private Integer referedCount;
 
+    /**
+     * 创建时间
+     */
     private LocalDateTime createdAt;
 
+    /**
+     * 修改时间
+     */
     private LocalDateTime updatedAt;
 
 

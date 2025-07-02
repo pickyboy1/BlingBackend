@@ -95,7 +95,7 @@
             <artifactId>spring-security-crypto</artifactId>
         </dependency>
 
-        <!--        minio-->
+        <!--minio-->
         <dependency>
             <groupId>io.minio</groupId>
             <artifactId>minio</artifactId>

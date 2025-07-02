@@ -14,16 +14,20 @@ import java.util.List;
 /**
  * 标签服务接口
  *
- * @author pickyboy
+ * @author shiqi
  */
 public interface ITagService extends IService<Tags> {
 
     /**
      * 获取当前用户的所有标签
      *
+     * @param page 页码
+     * @param limit 每页数量
+     * @param sortBy 排序字段
+     * @param order 排序方式
      * @return 标签列表
      */
-    PageResult<TagVO> getUserTags(QueryTagsRequest queryTagsRequest);
+    List<TagVO> getUserTags(Integer page, Integer limit, String sortBy, String order);
 
     /**
      * 创建新标签
@@ -36,15 +40,15 @@ public interface ITagService extends IService<Tags> {
     /**
      * 修改标签名
      *
+     * @param tagId 标签ID
      * @param updateRequest 更新请求
-     * @return 更新后的标签信息
      */
-    TagVO updateTag(UpdateTagRequest updateRequest);
+    void updateTag(Long tagId, UpdateTagRequest updateRequest);
 
     /**
      * 批量删除标签
      *
-     * @param deleteRequest
+     * @param deleteRequest 删除请求
      */
-    Boolean deleteTags(DeleteTagsRequest deleteRequest);
+    void deleteTags(DeleteTagsRequest deleteRequest);
 }

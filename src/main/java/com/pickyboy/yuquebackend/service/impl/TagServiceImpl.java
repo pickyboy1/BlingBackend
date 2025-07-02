@@ -33,7 +33,7 @@ import org.springframework.util.StringUtils;
 /**
  * 标签服务实现类
  *
- * @author pickyboy
+ * @author shiqi
  */
 @Slf4j
 @Service
@@ -43,8 +43,11 @@ public class TagServiceImpl extends ServiceImpl<TagsMapper, Tags> implements ITa
     @Autowired
     private NoteTagMapServiceImpl noteTagMapService;
 
+    // 时间格式化器
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     @Override
-    public PageResult<TagVO> getUserTags(QueryTagsRequest queryTagsRequest) {
+    public List<TagVO> getUserTags(Integer page, Integer limit, String sortBy, String order) {
         // TODO: 测试获取用户标签列表逻辑
         log.info("用户标签列表查询");
         Long userId = CurrentHolder.getCurrentUserId();
@@ -52,30 +55,35 @@ public class TagServiceImpl extends ServiceImpl<TagsMapper, Tags> implements ITa
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
 
-        Page<Tags> page = new Page<>(queryTagsRequest.getPageNum(), queryTagsRequest.getPageSize());
+        Page<Tags> pageObj = new Page<>(page, limit);
 
+        // 构建查询条件
         LambdaQueryWrapper<Tags> wrapper = new LambdaQueryWrapper<Tags>()
-                .eq(Tags::getUserId, userId)
-                .orderByDesc(Tags::getCreatedAt);
+                .eq(Tags::getUserId, userId);
 
-        List<Tags> tags = list(
-                new LambdaQueryWrapper<Tags>()
-                        .eq(Tags::getUserId, userId)
-                        .orderByDesc(Tags::getCreatedAt)
-        );
-
-        // 关键词搜索
-        if (StringUtils.hasText(queryTagsRequest.getKeyword())) {
-            wrapper.like(Tags::getName, queryTagsRequest.getKeyword());
+        // 设置排序
+        if ("name".equals(sortBy)) {
+            if ("asc".equals(order)) {
+                wrapper.orderByAsc(Tags::getName);
+            } else {
+                wrapper.orderByDesc(Tags::getName);
+            }
+        } else {
+            // 默认按 count 排序
+            if ("asc".equals(order)) {
+                wrapper.orderByAsc(Tags::getReferedCount);
+            } else {
+                wrapper.orderByDesc(Tags::getReferedCount);
+            }
         }
 
-        Page<Tags> tagPage = page(page, wrapper);
+        Page<Tags> tagPage = page(pageObj, wrapper);
 
         List<TagVO> voList = tagPage.getRecords().stream()
                 .map(this::convertToTagVO)
                 .collect(Collectors.toList());
 
-        return new PageResult<>(tagPage.getTotal(), voList);
+        return voList;
     }
 
     @Override
@@ -121,17 +129,16 @@ public class TagServiceImpl extends ServiceImpl<TagsMapper, Tags> implements ITa
 
     @Override
     @Transactional
-    public TagVO updateTag(UpdateTagRequest updateRequest) {
+    public void updateTag(Long tagId, UpdateTagRequest updateRequest) {
         // TODO: 测试更新标签逻辑
+        log.info("标签名称更新: tagId={}, newName={}", tagId, updateRequest.getName());
 
         Long userId = CurrentHolder.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
 
-        Long tagId = updateRequest.getTagId();
         String newName = updateRequest.getName().trim();
-        log.info("标签名称更新: tagId={}, newName={}", tagId, newName);
 
         // 验证标签是否属于当前用户
         Tags existingTag = getOne(
@@ -165,49 +172,64 @@ public class TagServiceImpl extends ServiceImpl<TagsMapper, Tags> implements ITa
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "标签更新失败");
         }
 
-        return convertToTagVO(existingTag);
+        log.info("标签更新成功: id={}, name={}", existingTag.getId(), existingTag.getName());
     }
 
     @Override
     @Transactional
-    public Boolean deleteTags(DeleteTagsRequest deleteRequest) {
+    public void deleteTags(DeleteTagsRequest deleteRequest) {
         // TODO: 测试删除标签逻辑
+
+        List<String> tagIds = deleteRequest.getTagIds();
+
+        log.info("批量删除标签: tagIds={}", tagIds);
+
         Long userId = CurrentHolder.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
 
-        Long[] tagIds = deleteRequest.getTagIds();
+        // 转换为Long类型
+        List<Long> longTagIds = tagIds.stream()
+                .map(Long::valueOf)
+                .collect(Collectors.toList());
 
         // 验证标签是否属于当前用户
         long count = count(
                 new LambdaQueryWrapper<Tags>()
                         .eq(Tags::getUserId, userId)
-                        .in(Tags::getId, Arrays.asList(tagIds))
+                        .in(Tags::getId, longTagIds)
         );
 
-        if (count != tagIds.length) {
+        if (count != longTagIds.size()) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "存在无效的标签ID");
         }
 
-        // 删除标签（物理删除，因为标签表没有逻辑删除）
-        boolean deleted = removeByIds(Arrays.asList(tagIds));
+        // 删除标签
+        boolean deleted = removeByIds(longTagIds);
 
         // 删除相关的小记-标签关联关系
         noteTagMapService.remove(
                 new LambdaQueryWrapper<NoteTagMap>()
-                        .in(NoteTagMap::getTagId, Arrays.asList(tagIds))
+                        .in(NoteTagMap::getTagId, longTagIds)
         );
 
-        return deleted;
+        if (!deleted) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "标签删除失败");
+        }
+
+        log.info("批量删除标签成功，数量: {}", longTagIds.size());
     }
 
+    /**
+     * 转换为TagVO，包含完整的时间信息
+     */
     private TagVO convertToTagVO(Tags tag) {
         TagVO vo = new TagVO();
         vo.setId(String.valueOf(tag.getId()));
         vo.setName(tag.getName());
         vo.setCount(tag.getReferedCount());
-        vo.setCreatedAt(tag.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+
         return vo;
     }
 }

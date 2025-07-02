@@ -2,15 +2,7 @@ package com.pickyboy.yuquebackend.controller;
 
 import java.util.List;
 
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.pickyboy.yuquebackend.common.response.Result;
 import com.pickyboy.yuquebackend.domain.dto.knowledgebase.InsertKnowledgeBaseRequest;
@@ -132,13 +124,13 @@ public class KnowledgeBaseController {
 
     /**
      * 更改知识库的可见性
-     * PUT /knowledge-bases/{kbId}/visibility
+     * PATCH /knowledge-bases/{kbId}/visibility
      *
      * @param kbId 知识库ID
      * @param visibilityRequest 可见性设置请求
      * @return 操作结果
      */
-    @PutMapping("/knowledge-bases/{kbId}/visibility")
+    @PatchMapping("/knowledge-bases/{kbId}/visibility")
     public Result<Void> updateKnowledgeBaseVisibility(@PathVariable Long kbId,
                                                       @Valid @RequestBody VisibilityRequest visibilityRequest) {
         log.info("更新知识库可见性: kbId={}, visibility={}", kbId, visibilityRequest.getVisibility());
