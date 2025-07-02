@@ -1,7 +1,11 @@
 package com.pickyboy.yuquebackend.service.impl;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -18,6 +22,7 @@ import com.pickyboy.yuquebackend.domain.dto.comment.CommentCreateRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.CopyResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.CreateResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.MoveResourceRequest;
+import com.pickyboy.yuquebackend.domain.dto.resource.RestoreResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceContentRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceInfoRequest;
 import com.pickyboy.yuquebackend.domain.entity.Comments;
@@ -70,8 +75,8 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         if (userId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
-        // 检查知识库是否存在且未被删除
-        validateKnowledgeBaseAccess(kbId, userId);
+        // 检查知识库所有权：只能向自己的知识库添加资源
+        knowledgeBaseValidationService.validateKnowledgeBaseOwnership(kbId, userId);
 
         Resources resource = new Resources();
         resource.setKnowledgeBaseId(kbId);
@@ -90,23 +95,20 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         if (userId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
-        Resources resource = getById(resId);
+
+        // 【重构】使用带权限验证的JOIN查询，同时检查资源和知识库的可见性
+        Resources resource = baseMapper.selectResourceInActiveKbWithUser(resId, userId);
         if (resource == null) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
-        }
-
-        // 检查对应知识库是否被删除
-        validateKnowledgeBaseAccess(resource.getKnowledgeBaseId(), userId);
-
-        if (resource.getUserId() != userId && resource.getVisibility() == 0) {
-            throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED);
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "资源不存在、其知识库已被删除或无访问权限");
         }
 
         // 异步记录浏览历史
         recordViewHistoryAsync(userId, resId);
 
-        // 增加访问量
-        // todo: 使用Redis缓存访问量,根据时间窗口,过滤掉重复访问
+        // 【性能优化建议】访问量更新优化：
+        // TODO: 使用Redis缓存访问量，按时间窗口去重，减少数据库更新频率
+        // TODO: 批量更新访问量，例如每5分钟批量写入一次数据库
+        // TODO: 使用分布式锁防止并发访问时的数据不一致
         resource.setViewCount(resource.getViewCount() + 1);
         updateById(resource);
         return resource;
@@ -141,17 +143,18 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         if (userId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
-        Resources resource = getById(resId);
+
+        // 【重构】使用JOIN查询直接验证资源及其知识库状态
+        Resources resource = baseMapper.selectResourceInActiveKb(resId);
         if (resource == null) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "资源不存在或其知识库已被删除");
         }
 
-        // 检查对应知识库是否被删除
-        validateKnowledgeBaseAccess(resource.getKnowledgeBaseId(), userId);
-
-        if (resource.getUserId() != userId) {
+        // 权限验证：只有资源所有者可以修改
+        if (!resource.getUserId().equals(userId)) {
             throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED);
         }
+
         if (updateRequest.getTitle() != null) {
             resource.setTitle(updateRequest.getTitle());
         }
@@ -175,39 +178,51 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         if (userId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
-        Resources resource = getById(resId);
+
+        // 【重构】使用JOIN查询直接验证资源及其知识库状态
+        Resources resource = baseMapper.selectResourceInActiveKb(resId);
         if (resource == null) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "资源不存在或其知识库已被删除");
         }
 
-        // 检查对应知识库是否被删除
-        validateKnowledgeBaseAccess(resource.getKnowledgeBaseId(), userId);
-
-        if (resource.getUserId() != userId) {
+        // 权限验证：只有资源所有者可以删除
+        if (!resource.getUserId().equals(userId)) {
             throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED);
         }
+
         // 递归删除当前资源及其子资源
         recursiveDeleteResource(resId);
     }
 
-    /**
-     * 递归删除资源及其子资源
+        /**
+     * 【重构后】逻辑删除资源及其整个子树（无论子节点删除状态）
+     * 原递归方式：N+1查询问题，存在逻辑错误
+     * 优化后：统一查询所有子孙节点，一次性批量删除
      */
     private void recursiveDeleteResource(Long parentId) {
-        // 查找所有子资源
-        List<Resources> children = list(
-            new LambdaQueryWrapper<Resources>()
-                .eq(Resources::getPreId, parentId)
-        );
+        // 【修正】使用统一递归查询获取所有子孙节点ID（无论删除状态）
+        List<Resources> allDescendants = baseMapper.selectAllDescendants(parentId);
 
-        // 递归删除子资源
-        for (Resources child : children) {
-            recursiveDeleteResource(child.getId());
+        // 将当前节点ID也加入待删除列表
+        List<Long> allIdsToDelete = new ArrayList<>();
+        allIdsToDelete.add(parentId);
+
+        if (!allDescendants.isEmpty()) {
+            List<Long> descendantIds = allDescendants.stream()
+                .map(Resources::getId)
+                .collect(Collectors.toList());
+            allIdsToDelete.addAll(descendantIds);
         }
 
-        // 删除当前资源（逻辑删除）
-        removeById(parentId);
-        log.info("已删除资源: resId={}", parentId);
+        // 【优化】执行一次批量的逻辑删除
+        if (allIdsToDelete.size() > 1) { // 只有当有子节点时才批量删除
+            int deletedCount = baseMapper.batchLogicalDelete(allIdsToDelete);
+            log.info("成功逻辑删除了 resId={} 的整个子树，共 {} 个节点", parentId, deletedCount);
+        } else {
+            // 如果只有当前节点，使用常规删除
+            removeById(parentId);
+            log.info("已删除资源: resId={}", parentId);
+        }
     }
 
     @Override
@@ -217,17 +232,18 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         if (userId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
-        Resources resource = getById(resId);
+
+        // 【重构】使用JOIN查询直接验证资源及其知识库状态
+        Resources resource = baseMapper.selectResourceInActiveKb(resId);
         if (resource == null) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "资源不存在或其知识库已被删除");
         }
 
-        // 检查对应知识库是否被删除
-        validateKnowledgeBaseAccess(resource.getKnowledgeBaseId(), userId);
-
-        if (resource.getUserId() != userId) {
+        // 权限验证：只有资源所有者可以重命名
+        if (!resource.getUserId().equals(userId)) {
             throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED);
         }
+
         if (infoRequest.getTitle() != null) {
             resource.setTitle(infoRequest.getTitle());
         }
@@ -242,17 +258,18 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         if (userId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
-        Resources resource = getById(resId);
+
+        // 【重构】使用JOIN查询直接验证资源及其知识库状态
+        Resources resource = baseMapper.selectResourceInActiveKb(resId);
         if (resource == null) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "资源不存在或其知识库已被删除");
         }
 
-        // 检查对应知识库是否被删除
-        validateKnowledgeBaseAccess(resource.getKnowledgeBaseId(), userId);
-
-        if (resource.getUserId() != userId) {
+        // 权限验证：只有资源所有者可以修改可见性
+        if (!resource.getUserId().equals(userId)) {
             throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED);
         }
+
         resource.setVisibility(vRequest.getVisibility());
         updateById(resource);
     }
@@ -268,59 +285,101 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         if (userId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
-        Resources resource = getById(resId);
+
+        // 【重构】使用JOIN查询直接验证资源及其知识库状态
+        Resources resource = baseMapper.selectResourceInActiveKb(resId);
         if (resource == null) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "资源不存在或其知识库已被删除");
         }
 
-        // 检查对应知识库是否被删除
-        validateKnowledgeBaseAccess(resource.getKnowledgeBaseId(), userId);
-
-        if (resource.getUserId() != userId) {
+        // 权限验证：只有资源所有者可以修改状态
+        if (!resource.getUserId().equals(userId)) {
             throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED);
         }
+
         resource.setStatus(sRequest.getStatus());
         updateById(resource);
     }
 
     @Override
     @Transactional
-    public void restoreResource(Long resId) {
-        log.info("从回收站恢复资源: resId={}", resId);
+    public void restoreResource(Long resId, RestoreResourceRequest request) {
+        log.info("从回收站恢复资源: resId={}, request={}", resId, request);
 
         Long userId = CurrentHolder.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
 
-        // 查询已删除的资源（需要绕过逻辑删除）
-        Resources resource = getBaseMapper().selectById(resId);
+        // 【重构】使用JOIN查询验证已删除资源及其知识库状态
+        Resources resource = baseMapper.selectDeletedResourceInActiveKb(resId, userId);
         if (resource == null) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "资源不存在、未被删除或其知识库已被删除");
         }
 
-        // 验证权限
-        if (!resource.getUserId().equals(userId)) {
-            throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED);
-        }
+        // 【智能恢复】确定恢复位置
+        Long targetPreId = determineRestorePosition(resource, request);
 
-        // 验证资源是否已被删除
-        if (!Boolean.TRUE.equals(resource.getIsDeleted())) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "资源未被删除");
-        }
-
-        // 使用UpdateWrapper恢复资源，默认恢复到根节点（preId设为null）
+        // 使用UpdateWrapper恢复资源
         LambdaUpdateWrapper<Resources> updateWrapper = new LambdaUpdateWrapper<>();
         updateWrapper.eq(Resources::getId, resId)
                     .set(Resources::getIsDeleted, false)
-                    .set(Resources::getPreId, null); // 恢复到根节点
+                    .set(Resources::getPreId, targetPreId);
 
         boolean updated = update(updateWrapper);
         if (!updated) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "资源恢复失败");
         }
 
-        log.info("资源恢复成功: resId={}", resId);
+        log.info("资源恢复成功: resId={}, targetPreId={}", resId, targetPreId);
+    }
+
+    /**
+     * 智能确定恢复位置
+     * @param resource 要恢复的资源
+     * @param request 恢复请求
+     * @return 目标父节点ID
+     */
+    private Long determineRestorePosition(Resources resource, RestoreResourceRequest request) {
+        // 1. 如果用户明确指定了恢复位置，使用用户指定的位置
+        if (request != null && request.getTargetPreId() != null) {
+            Long targetPreId = request.getTargetPreId();
+
+            // 【修正】0L也表示根节点，与null等价
+            if (targetPreId.equals(0L)) {
+                log.info("用户指定恢复到根节点（传入0）");
+                return null; // 恢复到根节点
+            }
+
+            // 验证目标父节点是否存在且在同一知识库中
+            Resources targetParent = baseMapper.selectResourceInActiveKb(targetPreId);
+            if (targetParent == null) {
+                log.warn("指定的目标父节点不存在或已被删除，将恢复到根节点: targetPreId={}", targetPreId);
+                return null;
+            }
+            if (!targetParent.getKnowledgeBaseId().equals(resource.getKnowledgeBaseId())) {
+                log.warn("指定的目标父节点不在同一知识库中，将恢复到根节点: targetKbId={}, resourceKbId={}",
+                        targetParent.getKnowledgeBaseId(), resource.getKnowledgeBaseId());
+                return null;
+            }
+
+            log.info("使用用户指定的恢复位置: targetPreId={}", targetPreId);
+            return targetPreId;
+        }
+
+        // 2. 尝试恢复到原位置
+        Long originalPreId = resource.getPreId();
+        if (originalPreId != null) {
+            Resources originalParent = baseMapper.selectResourceInActiveKb(originalPreId);
+            if (originalParent != null && originalParent.getKnowledgeBaseId().equals(resource.getKnowledgeBaseId())) {
+                log.info("恢复到原始位置: originalPreId={}", originalPreId);
+                return originalPreId;
+            }
+        }
+
+        // 3. 默认恢复到根节点
+        log.info("恢复到根节点");
+        return null;
     }
 
     @Override
@@ -360,11 +419,13 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
 
-        // 验证源资源是否存在且有权限操作
-        Resources resource = getById(resId);
+        // 【重构】使用JOIN查询验证源资源及其知识库状态
+        Resources resource = baseMapper.selectResourceInActiveKb(resId);
         if (resource == null) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "源资源不存在或其知识库已被删除");
         }
+
+        // 权限验证：只有资源所有者可以移动
         if (!resource.getUserId().equals(userId)) {
             throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED);
         }
@@ -374,14 +435,18 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
 
         // 验证目标父节点是否存在（如果不为null）
         if (moveRequest.getTargetPreId() != null) {
-            Resources targetParent = getById(moveRequest.getTargetPreId());
+            // 【重构】使用JOIN查询验证目标父节点及其知识库状态
+            Resources targetParent = baseMapper.selectResourceInActiveKb(moveRequest.getTargetPreId());
             if (targetParent == null) {
-                throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "目标父节点不存在");
+                throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "目标父节点不存在或其知识库已被删除");
             }
             if (!targetParent.getKnowledgeBaseId().equals(moveRequest.getTargetKbId())) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "目标父节点不属于目标知识库");
             }
         }
+
+        // 【重构】判断是否需要更新子资源的知识库ID（跨知识库移动）
+        boolean needUpdateChildrenKb = !resource.getKnowledgeBaseId().equals(moveRequest.getTargetKbId());
 
         // 使用UpdateWrapper来支持将preId设置为null（移动到根节点）
         LambdaUpdateWrapper<Resources> updateWrapper = new LambdaUpdateWrapper<>();
@@ -394,26 +459,32 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
             throw new BusinessException(ErrorCode.RESOURCE_MOVE_FAILED);
         }
 
-        // 递归更新所有子资源的知识库ID，保持原有的父子关系
-        updateChildrenKnowledgeBaseId(resId, moveRequest.getTargetKbId());
+        // 【优化】只有跨知识库移动时才需要更新子资源的知识库ID
+        if (needUpdateChildrenKb) {
+            updateChildrenKnowledgeBaseId(resId, moveRequest.getTargetKbId());
+        }
 
-        log.info("资源移动成功: resId={}, targetKbId={}, targetPreId={}",
-                resId, moveRequest.getTargetKbId(), moveRequest.getTargetPreId());
+        log.info("资源移动成功: resId={}, targetKbId={}, targetPreId={}, updatedChildren={}",
+                resId, moveRequest.getTargetKbId(), moveRequest.getTargetPreId(), needUpdateChildrenKb);
     }
 
-    /**
-     * 递归更新子资源的知识库ID
+        /**
+     * 【重构后】批量更新子资源的知识库ID（包括已删除的子资源）
+     * 原递归方式：移动100个资源需要100+次UPDATE操作，分两次查询低效
+     * 优化后：统一查询所有子孙节点，一次性批量更新
      */
     private void updateChildrenKnowledgeBaseId(Long parentId, Long newKbId) {
-        List<Resources> children = list(new LambdaQueryWrapper<Resources>()
-            .eq(Resources::getPreId, parentId)
-        );
+        // 【修正】使用统一递归查询获取所有子孙节点（无论删除状态）
+        List<Resources> allDescendants = baseMapper.selectAllDescendants(parentId);
 
-        for (Resources child : children) {
-            child.setKnowledgeBaseId(newKbId);
-            updateById(child);
-            // 递归处理子资源的子资源
-            updateChildrenKnowledgeBaseId(child.getId(), newKbId);
+        if (!allDescendants.isEmpty()) {
+            List<Long> descendantIds = allDescendants.stream()
+                .map(Resources::getId)
+                .collect(Collectors.toList());
+
+            // 【优化】执行一次批量更新，同时处理已删除和未删除的子资源
+            int updatedCount = baseMapper.batchUpdateKnowledgeBaseId(descendantIds, newKbId);
+            log.info("批量更新所有子孙资源知识库ID: parentId={}, updatedCount={}", parentId, updatedCount);
         }
     }
 
@@ -429,16 +500,17 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         if (userId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
-        Resources resource = getById(resId);
+
+        // 【重构】使用JOIN查询直接验证源资源及其知识库状态
+        Resources resource = baseMapper.selectResourceInActiveKb(resId);
         if (resource == null) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "源资源不存在或其知识库已被删除");
         }
+
+        // 权限验证：只有资源所有者可以复制
         if (!resource.getUserId().equals(userId)) {
             throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED);
         }
-
-        // 检查源资源对应的知识库是否被删除
-        validateKnowledgeBaseAccess(resource.getKnowledgeBaseId(), userId);
 
         // 验证目标知识库是否存在且有权限访问
         knowledgeBaseValidationService.validateKnowledgeBaseOwnership(copyRequest.getTargetKbId(), userId);
@@ -491,45 +563,73 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         recursiveCopyChildren(resId, copiedRoot.getId(), copyRequest.getTargetKbId());
     }
 
-    /**
-     * 递归辅助方法，用于复制子节点
+        /**
+     * 【重构后】递归复制子节点（包括回收站中的文件）
+     * 原递归方式：复制100个资源需要100+次数据库操作，只复制未删除文件导致结构不完整
+     * 优化后：统一查询所有子孙节点，确保复制结构完整
      * @param sourceParentId 源父节点ID
      * @param newParentId 新创建的父节点ID
      * @param targetKbId 目标知识库ID
      */
     private void recursiveCopyChildren(Long sourceParentId, Long newParentId, Long targetKbId) {
-        // 1. 查找所有直接子节点
-        List<Resources> children = list(new LambdaQueryWrapper<Resources>()
-            .eq(Resources::getPreId, sourceParentId)
-        );
+        // 【修正】使用统一递归查询获取所有子孙节点（无论删除状态）
+        List<Resources> allDescendants = baseMapper.selectAllDescendants(sourceParentId);
 
-        if (children.isEmpty()) {
-            return; // 如果没有子节点，递归结束
+        if (allDescendants.isEmpty()) {
+            return; // 如果没有子节点，直接返回
         }
 
-        // 2. 遍历子节点
-        for (Resources child : children) {
-            // 2.1 复制当前子节点，并将其父节点设置为新创建的父节点
-            CopyResourceRequest childCopyRequest = new CopyResourceRequest(targetKbId, newParentId);
+        // 存储原ID到新ID的映射关系，用于重建父子关系
+        Map<Long, Long> idMapping = new HashMap<>();
+        idMapping.put(sourceParentId, newParentId); // 添加根节点映射
+
+        // 【优化】按层级顺序遍历，确保父节点总是先于子节点被创建
+        for (Resources child : allDescendants) {
+            // 从映射中找到新的父节点ID
+            Long newParentForChild = idMapping.get(child.getPreId());
+
+            // 复制当前子节点
+            CopyResourceRequest childCopyRequest = new CopyResourceRequest(targetKbId, newParentForChild);
             Resources newChildNode = this.copyResource(child.getId(), childCopyRequest);
 
-            // 2.2 如果这个子节点本身也是一个目录，则继续递归
-            // (我们通过判断它是否还有子节点来简化，或者可以根据type字段判断)
-            recursiveCopyChildren(child.getId(), newChildNode.getId(), targetKbId);
+            // 记录新的ID映射关系，供后续子节点使用
+            idMapping.put(child.getId(), newChildNode.getId());
+
+            log.debug("复制子资源: sourceId={}, newId={}, newParent={}, isDeleted={}",
+                     child.getId(), newChildNode.getId(), newParentForChild, child.getIsDeleted());
         }
+
+        log.info("批量复制完成: sourceParent={}, copiedCount={} (包含已删除文件)", sourceParentId, allDescendants.size());
     }
 
     // todo:
     @Override
     public ShareUrlVO generateResourceShareLink(Long resId) {
         log.info("生成资源分享链接: resId={}", resId);
-        throw new UnsupportedOperationException("此方法尚未实现");
+
+        // 【重构】未来实现时需要使用JOIN查询验证资源及其知识库状态
+        // 1. 验证用户登录和权限
+        // 2. 使用selectResourceInActiveKb()验证资源状态
+        // 3. 验证用户是否为资源所有者
+        // 4. 生成分享链接
+
+        throw new UnsupportedOperationException("此方法尚未实现 - 实现时需要验证知识库状态");
     }
 
     @Override
     public PublicResourceVO accessSharedResource(String kbShareId, String resShareId) {
         log.info("访问分享资源: kbShareId={}, resShareId={}", kbShareId, resShareId);
-        throw new UnsupportedOperationException("此方法尚未实现");
+
+        // 【重构】未来实现时需要验证知识库状态
+        // 1. 通过shareId查询资源
+        // 2. 使用JOIN查询验证资源及其知识库状态:
+        //    SELECT r.* FROM resources r
+        //    JOIN knowledge_bases kb ON r.knowledge_base_id = kb.id
+        //    WHERE r.share_id = #{resShareId} AND kb.share_id = #{kbShareId}
+        //      AND r.is_deleted = 0 AND kb.is_deleted = 0
+        // 3. 验证分享权限和可见性
+
+        throw new UnsupportedOperationException("此方法尚未实现 - 实现时需要验证知识库状态");
     }
 
     @Override
@@ -539,9 +639,11 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         if (userId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
-        Resources resource = getById(articleId);
+
+        // 【重构】使用JOIN查询验证资源、知识库状态及用户权限
+        Resources resource = baseMapper.selectResourceInActiveKbWithUser(articleId, userId);
         if (resource == null) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "文章不存在、其知识库已被删除或无访问权限");
         }
         // 查询是否已点赞
         Likes like = likesService.getOne(new LambdaQueryWrapper<Likes>()
@@ -569,9 +671,11 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         if (userId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
-        Resources resource = getById(articleId);
+
+        // 【重构】使用JOIN查询验证资源、知识库状态及用户权限
+        Resources resource = baseMapper.selectResourceInActiveKbWithUser(articleId, userId);
         if (resource == null) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "文章不存在、其知识库已被删除或无访问权限");
         }
         Likes like = likesService.getOne(new LambdaQueryWrapper<Likes>()
             .eq(Likes::getUserId, userId)
@@ -594,12 +698,11 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         if (userId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
-        Resources resource = getById(articleId);
+
+        // 【重构】使用JOIN查询验证资源、知识库状态及用户权限（包含可见性验证）
+        Resources resource = baseMapper.selectResourceInActiveKbWithUser(articleId, userId);
         if (resource == null) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
-        }
-        if (resource.getVisibility() == 0 && !resource.getUserId().equals(userId)) {
-            throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED);
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "文章不存在、其知识库已被删除或无访问权限");
         }
         // 查询根评论(preId为null)
         List<RootCommentVO> comments = commentsService.listRootComments(articleId, (page - 1) * limit, limit);
@@ -613,7 +716,24 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         if (userId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
-        // 直接查询,父评论删除不影响子评论
+
+        // 【重构】需要通过评论ID间接验证资源及知识库状态和权限
+        // 由于需要同时验证资源和知识库的可见性，我们需要：
+        // 1. 先获取评论对应的资源ID
+        // 2. 使用带权限验证的查询方法
+
+        Comments comment = commentsService.getById(commentId);
+        if (comment == null) {
+            throw new BusinessException(ErrorCode.COMMENT_NOT_FOUND, "评论不存在");
+        }
+
+        // 使用带权限验证的查询，确保同时检查资源和知识库的可见性
+        Resources resource = baseMapper.selectResourceInActiveKbWithUser(comment.getResourceId(), userId);
+        if (resource == null) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "评论对应的资源不存在、其知识库已被删除或无访问权限");
+        }
+
+        // 查询评论回复
         List<SubCommentVO> comments = commentsService.listSubComments(commentId, (page - 1) * limit, limit);
         return comments;
     }
@@ -625,13 +745,11 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         if (userId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
-        // 1. 验证文章是否存在
-        Resources resource = getById(articleId);
+
+        // 【重构】使用JOIN查询验证资源、知识库状态及用户权限（包含可见性验证）
+        Resources resource = baseMapper.selectResourceInActiveKbWithUser(articleId, userId);
         if (resource == null) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
-        }
-        if (resource.getVisibility() == 0 && !resource.getUserId().equals(userId)) {
-            throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED);
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "文章不存在、其知识库已被删除或无访问权限");
         }
 
         // 2. 构造评论
@@ -682,35 +800,44 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         if (userId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
+
         Comments comment = commentsService.getById(commentId);
         if (comment == null) {
             throw new BusinessException(ErrorCode.COMMENT_NOT_FOUND);
         }
-        if (comment.getUserId().equals(userId)) {
-            Resources resource = getById(comment.getResourceId());
-            if (resource != null) {
-                resource.setCommentCount(resource.getCommentCount() - 1);
-                updateById(resource);
-            }
-            if (comment.getPreId() != null) {
-                Comments preComment = commentsService.getById(comment.getPreId());
-                if (preComment != null) {
-                    preComment.setReplyCount(preComment.getReplyCount() - 1);
-                    commentsService.updateById(preComment);
-                }
-            }
-            if (comment.getRootId() != null&&!comment.getRootId().equals(comment.getId())) {
-                Comments rootComment = commentsService.getById(comment.getRootId());
-                if (rootComment != null) {
-                    rootComment.setReplyCount(rootComment.getReplyCount() - 1);
-                    commentsService.updateById(rootComment);
-                }
-            }
-            commentsService.removeById(commentId);
 
-        } else {
+        // 验证评论权限：只有评论作者可以删除
+        if (!comment.getUserId().equals(userId)) {
             throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED);
         }
+
+        // 【重构】验证评论对应的资源及知识库状态和可见性
+        // 使用带权限验证的查询，确保用户有权限访问该资源
+        Resources resource = baseMapper.selectResourceInActiveKbWithUser(comment.getResourceId(), userId);
+        if (resource == null) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "评论对应的资源不存在、其知识库已被删除或无访问权限");
+        }
+
+        // 更新资源评论计数
+        resource.setCommentCount(resource.getCommentCount() - 1);
+        updateById(resource);
+
+        // 更新评论计数
+        if (comment.getPreId() != null) {
+            Comments preComment = commentsService.getById(comment.getPreId());
+            if (preComment != null) {
+                preComment.setReplyCount(preComment.getReplyCount() - 1);
+                commentsService.updateById(preComment);
+            }
+        }
+        if (comment.getRootId() != null && !comment.getRootId().equals(comment.getId())) {
+            Comments rootComment = commentsService.getById(comment.getRootId());
+            if (rootComment != null) {
+                rootComment.setReplyCount(rootComment.getReplyCount() - 1);
+                commentsService.updateById(rootComment);
+            }
+        }
+        commentsService.removeById(commentId);
     }
 
     @Override
@@ -720,9 +847,22 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
     }
 
     @Override
-    public List<PublicResourceVO> listExploreArticles() {
-        log.info("获取推荐文章列表");
-        throw new UnsupportedOperationException("此方法尚未实现");
+    public List<PublicResourceVO> listExploreArticles(String sortBy, Integer page, Integer limit) {
+        log.info("获取推荐文章列表: sortBy={}, page={}, limit={}", sortBy, page, limit);
+
+        // 【重构】未来实现时需要使用JOIN查询过滤已删除知识库的资源
+        // 示例SQL:
+        // SELECT r.* FROM resources r
+        // JOIN knowledge_bases kb ON r.knowledge_base_id = kb.id
+        // WHERE r.is_deleted = 0 AND kb.is_deleted = 0
+        //   AND r.visibility = 1 AND kb.visibility = 1
+        //   AND r.status = 1
+        // ORDER BY
+        //   CASE WHEN #{sortBy} = 'hot' THEN r.like_count * 0.6 + r.view_count * 0.3 + r.comment_count * 0.1 END DESC,
+        //   CASE WHEN #{sortBy} = 'new' THEN r.created_at END DESC
+        // LIMIT #{offset}, #{limit}
+
+        throw new UnsupportedOperationException("此方法尚未实现 - 实现时需要使用JOIN查询过滤已删除知识库，支持hot/new排序");
     }
 
     @Override
@@ -741,10 +881,5 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         private Integer status;
     }
 
-    /**
-     * 验证知识库访问权限（检查知识库是否存在且未被删除）
-     */
-    private void validateKnowledgeBaseAccess(Long kbId, Long userId) {
-        knowledgeBaseValidationService.validateKnowledgeBaseAccess(kbId, userId);
-    }
+
 }

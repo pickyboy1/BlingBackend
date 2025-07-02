@@ -20,6 +20,7 @@ import com.pickyboy.yuquebackend.domain.dto.comment.CommentCreateRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.CopyResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.CreateResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.MoveResourceRequest;
+import com.pickyboy.yuquebackend.domain.dto.resource.RestoreResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceContentRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceInfoRequest;
 import com.pickyboy.yuquebackend.domain.entity.Resources;
@@ -125,9 +126,10 @@ public class ResourceController {
      * 恢复资源
      */
     @PostMapping("/recycle-bin/resources/{resId}")
-    public Result<Void> restoreResource(@PathVariable Long resId) {
-        log.info("从回收站恢复资源: resId={}", resId);
-        resourceService.restoreResource(resId);
+    public Result<Void> restoreResource(@PathVariable Long resId,
+                                       @RequestBody(required = false) RestoreResourceRequest request) {
+        log.info("从回收站恢复资源: resId={}, request={}", resId, request);
+        resourceService.restoreResource(resId, request);
         return Result.success();
     }
 
@@ -270,9 +272,12 @@ public class ResourceController {
      * 获取推荐文章列表
      */
     @GetMapping("/explore/articles")
-    public Result<List<PublicResourceVO>> listExploreArticles() {
-        log.info("获取推荐文章列表");
-        List<PublicResourceVO> articles = resourceService.listExploreArticles();
+    public Result<List<PublicResourceVO>> listExploreArticles(
+            @RequestParam(defaultValue = "hot") String sortBy,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "20") Integer limit) {
+        log.info("获取推荐文章列表: sortBy={}, page={}, limit={}", sortBy, page, limit);
+        List<PublicResourceVO> articles = resourceService.listExploreArticles(sortBy, page, limit);
         return Result.success(articles);
     }
 

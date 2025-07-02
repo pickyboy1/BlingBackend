@@ -82,8 +82,9 @@ public interface IResourceService extends IService<Resources> {
      * 恢复资源
      *
      * @param resId 资源ID
+     * @param request 恢复请求（可选），指定恢复位置
      */
-    void restoreResource(Long resId);
+    void restoreResource(Long resId, com.pickyboy.yuquebackend.domain.dto.resource.RestoreResourceRequest request);
 
     /**
      * 彻底删除资源
@@ -193,9 +194,12 @@ public interface IResourceService extends IService<Resources> {
     /**
      * 获取推荐文章列表
      *
+     * @param sortBy 排序方式：hot(热门) 或 new(最新)
+     * @param page 页码
+     * @param limit 每页数量
      * @return 推荐文章列表
      */
-    List<PublicResourceVO> listExploreArticles();
+    List<PublicResourceVO> listExploreArticles(String sortBy, Integer page, Integer limit);
 
     /**
      * 查询在未删除知识库中、但自身已被删除的文档列表
