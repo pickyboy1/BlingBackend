@@ -12,6 +12,11 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: yuque
     password: ${pickyboy.db.pw}
+# Redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
   # JSON??????
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
@@ -30,7 +35,7 @@ mybatis-plus:
 logging:
   level:
     com.pickyboy: debug
-    # ????SQL??
+    # 可以查看执行的SQL
     com.pickyboy.yuquebackend.mapper: debug
   pattern:
     dateformat: HH:mm:ss:SSS

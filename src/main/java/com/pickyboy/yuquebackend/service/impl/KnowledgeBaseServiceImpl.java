@@ -3,8 +3,11 @@ package com.pickyboy.yuquebackend.service.impl;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import com.pickyboy.yuquebackend.common.constants.RedisKeyConstants;
+import com.pickyboy.yuquebackend.common.utils.RedisUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBasesMapper, KnowledgeBases> implements IKnowledgeBaseService {
 
     private final IResourceService resourceService;
+    private final RedisUtil redisUtil;
 
     /*
         获取当前用户的知识库列表
@@ -177,8 +181,16 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBasesMapper, 
         if(currentUserId != null){
             // 【修复并发问题】原子操作增加访问量
             // 不需要过滤用户自身,方便测试,实现过滤功能后,也可以防止用户自己刷访问量
-            // todo: 使用Redis缓存访问量,根据时间窗口,过滤掉重复访问
-            baseMapper.incrementViewCount(kbId);
+
+            // 检查key是否存在
+            if(!redisUtil.hasKey(RedisKeyConstants.getKbViewKey(kbId, currentUserId))) {
+                // 不存在,加入key,增加浏览量
+                redisUtil.set(RedisKeyConstants.getKbViewKey(kbId, currentUserId), true, 30, TimeUnit.MINUTES);
+                log.info("用户{}访问知识库{},增加了访问量", currentUserId, kbId);
+
+                // todo: 后续使用kafka通知,由kafkaStream合并浏览量,减少数据库访问
+                baseMapper.incrementViewCount(kbId);
+            }
             // 不回显shareId
             knowledgeBase.setShareId(null);
         }

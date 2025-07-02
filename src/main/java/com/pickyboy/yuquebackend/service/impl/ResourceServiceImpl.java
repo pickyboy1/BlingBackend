@@ -5,8 +5,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import com.pickyboy.yuquebackend.common.constants.RedisKeyConstants;
+import com.pickyboy.yuquebackend.common.utils.RedisUtil;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,6 +69,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
     private final ICommentsService commentsService;
     private final CommentsMapper commentsMapper;
     private final UsersMapper usersMapper;
+    private final RedisUtil redisUtil;
     /* 在知识库中新建资源
      * 只新建资源记录,无实际内容
      */
@@ -108,15 +112,20 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         recordViewHistoryAsync(userId, resId);
 
         // 【修复并发问题+性能优化】原子操作更新访问量
-        // TODO: 使用Redis缓存访问量，按时间窗口去重，减少数据库更新频率
-        // TODO: 批量更新访问量，例如每5分钟批量写入一次数据库
-        baseMapper.incrementViewCount(resId);
+
+        if(!redisUtil.hasKey(RedisKeyConstants.getResourceViewKey(resId, userId))){
+            redisUtil.set(RedisKeyConstants.getResourceViewKey(resId, userId), true,30, TimeUnit.MINUTES);
+            baseMapper.incrementViewCount(resId);
+            log.info("用户访问了资源,更新了访问量: resId={},userId={}", resId,userId);
+        }
+        // TODO: 引入kafka,批处理访问量更新,计算热力值
+
         return resource;
     }
 
     /**
      * 异步记录浏览历史
-     *
+     *  已存在则更新时间
      * @param userId 用户ID
      * @param resourceId 资源ID
      */
