@@ -58,6 +58,7 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBasesMapper, 
         List<KnowledgeBases> knowledgeBases = list(
             new LambdaQueryWrapper<KnowledgeBases>()
                 .eq(KnowledgeBases::getUserId, userId)
+                .orderByDesc(KnowledgeBases::getCreatedAt)
         );
 
         List<KbsWithRecentResourceVo> kbsWithRecentResourceVos = knowledgeBases.stream().map(kb -> {
@@ -205,6 +206,7 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBasesMapper, 
         List<Resources> resources = resourceService.list(
             new LambdaQueryWrapper<Resources>()
                 .eq(Resources::getKnowledgeBaseId, kbId)
+                    .orderByDesc(Resources::getCreatedAt)
         );
 
         // 1. 将所有资源转换为 ResourceTreeVo，并用 Map 存储，方便快速查找
@@ -403,6 +405,7 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBasesMapper, 
             new LambdaQueryWrapper<KnowledgeBases>()
                 .eq(KnowledgeBases::getUserId, userId)
                 .eq(KnowledgeBases::getIsDeleted, true)
+                    .orderByDesc(KnowledgeBases::getUpdatedAt)
         );
 
         // 获取用户的所有未删除知识库的ID列表
@@ -424,6 +427,7 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBasesMapper, 
                     .eq(Resources::getUserId, userId)
                     .eq(Resources::getIsDeleted, true)
                     .in(Resources::getKnowledgeBaseId, existingKbIds)
+                        .orderByDesc(Resources::getUpdatedAt)
             );
         }
 

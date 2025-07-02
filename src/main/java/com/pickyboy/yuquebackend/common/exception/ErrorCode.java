@@ -50,7 +50,15 @@ public enum ErrorCode {
     INSUFFICIENT_PERMISSIONS(5004, "权限不足"),
 
     // 标签及小记相关错误码 (6000-6999)
-    TAG_NAME_DUPLICATE(6001,"标签名已存在");
+    TAG_NAME_DUPLICATE(6001,"标签名已存在"),
+
+    // 评论相关错误码 (7000-7999)
+    COMMENT_NOT_FOUND(7001, "评论不存在"),
+    COMMENT_DELETE_FAILED(7002, "评论删除失败"),
+    COMMENT_ALREADY_LIKED(7006, "评论已点赞"),
+    COMMENT_ALREADY_UNLIKED(7007, "评论未点赞");
+
+
 
 
     private final int code;

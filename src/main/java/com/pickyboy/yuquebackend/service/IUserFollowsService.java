@@ -1,7 +1,10 @@
 package com.pickyboy.yuquebackend.service;
 
-import com.pickyboy.yuquebackend.domain.entity.UserFollows;
+import java.util.List;
+
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.pickyboy.yuquebackend.domain.entity.UserFollows;
+import com.pickyboy.yuquebackend.domain.vo.user.UserSummary;
 
 /**
  * <p>
@@ -12,5 +15,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
  * @since 2025-06-25
  */
 public interface IUserFollowsService extends IService<UserFollows> {
+    List<UserSummary> getUserFollowing(Long userId, Integer offset, Integer limit);
 
+    List<UserSummary> getUserFollowers(Long userId, Integer offset, Integer limit);
 }

@@ -11,16 +11,20 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.pickyboy.yuquebackend.common.response.Result;
+import com.pickyboy.yuquebackend.domain.dto.comment.CommentCreateRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.CopyResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.CreateResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.MoveResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceContentRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceInfoRequest;
 import com.pickyboy.yuquebackend.domain.entity.Resources;
+import com.pickyboy.yuquebackend.domain.vo.comment.RootCommentVO;
+import com.pickyboy.yuquebackend.domain.vo.comment.SubCommentVO;
 import com.pickyboy.yuquebackend.domain.vo.resource.PublicResourceVO;
 import com.pickyboy.yuquebackend.domain.vo.resource.ShareUrlVO;
 import com.pickyboy.yuquebackend.service.IResourceService;
@@ -214,13 +218,29 @@ public class ResourceController {
     }
 
     /**
-     * 获取文章的评论列表
+     * 获取文章的根评论列表(不包含子评论)
      */
     @GetMapping("/articles/{articleId}/comments")
-    public Result<List<?>> listArticleComments(@PathVariable Long articleId) {
-        log.info("获取文章评论列表: articleId={}", articleId);
-        List<?> comments = resourceService.listArticleComments(articleId);
+    public Result<List<RootCommentVO>> listArticleComments(
+            @PathVariable Long articleId,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer limit) {
+        log.info("获取文章根评论列表: articleId={}, page={}, limit={}", articleId, page, limit);
+        List<RootCommentVO> comments = resourceService.listArticleComments(articleId, page, limit);
         return Result.success(comments);
+    }
+
+    /**
+     * 获取评论的子评论列表
+     */
+    @GetMapping("/comments/{commentId}/replies")
+    public Result<List<SubCommentVO>> listCommentReplies(
+            @PathVariable Long commentId,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "20") Integer limit) {
+        log.info("获取评论回复列表: commentId={}, page={}, limit={}", commentId, page, limit);
+        List<SubCommentVO> replies = resourceService.listCommentReplies(commentId, page, limit);
+        return Result.success(replies);
     }
 
     /**
@@ -228,10 +248,10 @@ public class ResourceController {
      */
     @PostMapping("/articles/{articleId}/comments")
     @ResponseStatus(HttpStatus.CREATED)
-    public Result<Object> createComment(@PathVariable Long articleId,
-                                       @RequestBody Object commentRequest) {
+    public Result<RootCommentVO> createComment(@PathVariable Long articleId,
+                                              @Valid @RequestBody CommentCreateRequest commentRequest) {
         log.info("发表评论: articleId={}, request={}", articleId, commentRequest);
-        Object comment = resourceService.createComment(articleId, commentRequest);
+        RootCommentVO comment = resourceService.createComment(articleId, commentRequest);
         return Result.success(comment);
     }
 

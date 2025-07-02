@@ -1,5 +1,92 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.pickyboy.yuquebackend.mapper.CommentsMapper">
+    <select id="commentHistory" resultType="com.pickyboy.yuquebackend.domain.vo.user.ActivityRecord">
+        SELECT
+            c.resource_id AS resourceId,
+            r.title AS resourceTitle,
+            r.type AS resourceType,
+            r.knowledge_base_id AS kbId,
+            kb.name AS kbName,
+            r.user_id AS authorId,
+            u.nickname AS authorName,
+            c.created_at AS actionAt,
+            CASE
+                WHEN r.is_deleted = 1 THEN 'ARTICLE_DELETED'
+                WHEN kb.is_deleted = 1 THEN 'KB_DELETED'
+                WHEN u.is_deleted = 1 THEN 'AUTHOR_DELETED'
+                WHEN r.visibility = 0 THEN 'PRIVATE'
+                ELSE 'NORMAL'
+            END AS status
+        FROM comments as c
+        LEFT JOIN resources as r ON c.resource_id = r.id
+        LEFT JOIN knowledge_bases as kb ON r.knowledge_base_id = kb.id
+        LEFT JOIN users as u ON r.user_id = u.id
+        WHERE c.user_id = #{userId}
+          AND c.is_deleted = 0
+        ORDER BY c.created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+<!--    只查出未删除账号发表的评论-->
+    <select id="listRootComments" resultType="com.pickyboy.yuquebackend.domain.vo.comment.RootCommentVO">
+        SELECT c.id, c.content, c.reply_count AS replyCount, c.created_at AS createdAt, c.user_id AS userId, users.nickname, users.avatar_url AS avatarUrl, c.status
+        FROM comments c JOIN users ON c.user_id = users.id
+        WHERE resource_id = #{articleId}
+          AND pre_id IS NULL
+          AND c.is_deleted = 0
+          AND users.is_deleted = 0
+        ORDER BY created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+<!--    使用leftjoin,即使父评论或者作者账号被删除了,只要评论本身没删除
+        评论依然能显示,只是没有回复给谁的信息
+-->
+    <select id="listSubComments" resultType="com.pickyboy.yuquebackend.domain.vo.comment.SubCommentVO">
+        SELECT
+            -- 当前评论的信息
+            c.id,
+            c.content,
+            c.created_at AS createdAt,
+            c.status,
+
+            -- 当前评论作者的信息
+            c.user_id AS userId,
+            author.nickname,
+            author.avatar_url AS avatarUrl,
+
+            -- 被回复的评论/作者信息
+            c.pre_id AS replyToCommentId,
+            reply_to_user.id AS replyToUserId,
+            reply_to_user.nickname AS replyToUserNickname
+
+        FROM
+            -- 主表：我们正在查询的评论
+            comments AS c
+                JOIN
+            -- 第一次JOIN：获取当前评论的作者信息
+                users AS author ON c.user_id = author.id AND author.is_deleted = 0
+                LEFT JOIN
+            -- 第二次JOIN：通过pre_id关联到父评论
+                comments AS parent_comment ON parent_comment.is_deleted = 0 AND
+                                              c.pre_id = parent_comment.id
+                LEFT JOIN
+            -- 第三次JOIN：获取父评论的作者信息
+                users AS reply_to_user ON reply_to_user.is_deleted = 0 AND parent_comment.user_id = reply_to_user.id
+
+        WHERE
+          -- 核心筛选条件：只捞取指定根评论下的所有子孙评论
+            c.root_id = #{commentId}
+          -- 确保我们只查询回复，而不是根评论本身
+          AND c.pre_id IS NOT NULL
+          -- 确保关联的用户是有效的
+
+          AND c.is_deleted = 0
+
+        ORDER BY
+            c.created_at ASC -- 通常楼中楼按时间正序排列，便于阅读
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
 
 </mapper>

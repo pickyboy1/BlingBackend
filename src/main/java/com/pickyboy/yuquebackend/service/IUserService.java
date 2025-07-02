@@ -2,26 +2,29 @@ package com.pickyboy.yuquebackend.service;
 
 import java.util.List;
 
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.pickyboy.yuquebackend.domain.dto.user.LoginRequest;
 import com.pickyboy.yuquebackend.domain.dto.user.RegisterRequest;
 import com.pickyboy.yuquebackend.domain.dto.user.UpdateUserRequest;
 import com.pickyboy.yuquebackend.domain.entity.KnowledgeBases;
 import com.pickyboy.yuquebackend.domain.entity.Users;
+import com.pickyboy.yuquebackend.domain.vo.user.ActivityRecord;
 import com.pickyboy.yuquebackend.domain.vo.user.AuthResponse;
 import com.pickyboy.yuquebackend.domain.vo.user.UserPublicProfile;
+import com.pickyboy.yuquebackend.domain.vo.user.UserSummary;
 
 /**
  * 用户服务接口
  *
  * @author pickyboy
  */
-public interface IUserService {
+public interface IUserService  extends IService<Users> {
 
     /**
      * 用户注册
      *
      * @param registerRequest 注册请求
-     * @return 认证响应
+     * @return 注册结果
      */
     boolean register(RegisterRequest registerRequest);
 
@@ -79,23 +82,49 @@ public interface IUserService {
     void unfollowUser(Long userId);
 
     /**
+     * 获取用户关注的列表
+     *
+     * @param userId 用户ID
+     * @param page 页码
+     * @param limit 每页数量
+     * @return 关注用户列表
+     */
+    List<UserSummary> getUserFollowing(Long userId, Integer page, Integer limit);
+
+    /**
+     * 获取用户的粉丝列表
+     *
+     * @param userId 用户ID
+     * @param page 页码
+     * @param limit 每页数量
+     * @return 粉丝用户列表
+     */
+    List<UserSummary> getUserFollowers(Long userId, Integer page, Integer limit);
+
+    /**
      * 获取用户浏览历史
      *
+     * @param page 页码
+     * @param limit 每页数量
      * @return 浏览历史列表
      */
-    List<?> getUserHistory();
+    List<ActivityRecord> getUserViewHistory(Integer page, Integer limit);
 
     /**
      * 获取用户点赞的文章列表
      *
+     * @param page 页码
+     * @param limit 每页数量
      * @return 点赞文章列表
      */
-    List<?> getUserLikes();
+    List<ActivityRecord> getUserLikeHistory(Integer page, Integer limit);
 
     /**
      * 获取用户发表的评论列表
      *
+     * @param page 页码
+     * @param limit 每页数量
      * @return 用户评论列表
      */
-    List<?> getUserComments();
+    List<ActivityRecord> getUserCommentHistory(Integer page, Integer limit);
 }

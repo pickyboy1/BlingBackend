@@ -53,4 +53,9 @@ public class UserPublicProfile {
      * 知识库列表
      */
     private List<KnowledgeBases> knowledgeBases;
+
+    /**
+     * 是否已关注
+     */
+    private Boolean isFollowed;
 }

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.pickyboy.yuquebackend.common.response.Result;
@@ -17,8 +18,10 @@ import com.pickyboy.yuquebackend.domain.dto.user.RegisterRequest;
 import com.pickyboy.yuquebackend.domain.dto.user.UpdateUserRequest;
 import com.pickyboy.yuquebackend.domain.entity.KnowledgeBases;
 import com.pickyboy.yuquebackend.domain.entity.Users;
+import com.pickyboy.yuquebackend.domain.vo.user.ActivityRecord;
 import com.pickyboy.yuquebackend.domain.vo.user.AuthResponse;
 import com.pickyboy.yuquebackend.domain.vo.user.UserPublicProfile;
+import com.pickyboy.yuquebackend.domain.vo.user.UserSummary;
 import com.pickyboy.yuquebackend.service.IKnowledgeBaseService;
 import com.pickyboy.yuquebackend.service.IUserService;
 
@@ -124,7 +127,6 @@ public class UserController {
         return Result.success(profile);
     }
 
-// todo:
     /**
      * 关注用户
      * POST /users/{userId}/follow
@@ -154,41 +156,94 @@ public class UserController {
     }
 
     /**
-     * 获取我的浏览历史
-     * GET /me/history
+     * 获取用户关注的列表 (Following)
+     * GET /users/{userId}/following
      *
+     * @param userId 用户ID
+     * @param page 页码
+     * @param limit 每页数量
+     * @return 关注用户列表
+     */
+    @GetMapping("/users/{userId}/following")
+    public Result<List<UserSummary>> getUserFollowing(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "20") Integer limit) {
+        log.info("获取用户关注列表: userId={}, page={}, limit={}", userId, page, limit);
+        List<UserSummary> following = userService.getUserFollowing(userId, page, limit);
+        for (UserSummary summary : following) {
+            summary.setIsFollowing(true);
+        }
+        return Result.success(following);
+    }
+
+    /**
+     * 获取用户的粉丝列表 (Followers)
+     * GET /users/{userId}/followers
+     *
+     * @param userId 用户ID
+     * @param page 页码
+     * @param limit 每页数量
+     * @return 粉丝用户列表
+     */
+    @GetMapping("/users/{userId}/followers")
+    public Result<List<UserSummary>> getUserFollowers(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "20") Integer limit) {
+        log.info("获取用户粉丝列表: userId={}, page={}, limit={}", userId, page, limit);
+        List<UserSummary> followers = userService.getUserFollowers(userId, page, limit);
+        return Result.success(followers);
+    }
+
+    /**
+     * 获取浏览历史记录
+     * GET /user/history/views
+     *
+     * @param page 页码
+     * @param limit 每页数量
      * @return 浏览历史列表
      */
-    @GetMapping("/me/history")
-    public Result<List<?>> getUserHistory() {
-        log.info("获取用户浏览历史");
-        List<?> history = userService.getUserHistory();
+    @GetMapping("/user/history/views")
+    public Result<List<ActivityRecord>> getUserViewHistory(
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "20") Integer limit) {
+        log.info("获取用户浏览历史: page={}, limit={}", page, limit);
+        List<ActivityRecord> history = userService.getUserViewHistory(page, limit);
         return Result.success(history);
     }
 
     /**
-     * 获取我点赞过的文章列表
-     * GET /me/likes
+     * 获取点赞历史记录
+     * GET /user/history/likes
      *
+     * @param page 页码
+     * @param limit 每页数量
      * @return 点赞文章列表
      */
-    @GetMapping("/me/likes")
-    public Result<List<?>> getUserLikes() {
-        log.info("获取用户点赞文章列表");
-        List<?> likes = userService.getUserLikes();
+    @GetMapping("/user/history/likes")
+    public Result<List<ActivityRecord>> getUserLikeHistory(
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "20") Integer limit) {
+        log.info("获取用户点赞历史: page={}, limit={}", page, limit);
+        List<ActivityRecord> likes = userService.getUserLikeHistory(page, limit);
         return Result.success(likes);
     }
 
     /**
-     * 获取我发表过的评论列表
-     * GET /me/comments
+     * 获取评论历史记录
+     * GET /user/history/comments
      *
+     * @param page 页码
+     * @param limit 每页数量
      * @return 用户评论列表
      */
-    @GetMapping("/me/comments")
-    public Result<List<?>> getUserComments() {
-        log.info("获取用户评论列表");
-        List<?> comments = userService.getUserComments();
+    @GetMapping("/user/history/comments")
+    public Result<List<ActivityRecord>> getUserCommentHistory(
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "20") Integer limit) {
+        log.info("获取用户评论历史: page={}, limit={}", page, limit);
+        List<ActivityRecord> comments = userService.getUserCommentHistory(page, limit);
         return Result.success(comments);
     }
 }

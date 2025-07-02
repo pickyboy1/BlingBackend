@@ -1,7 +1,12 @@
 package com.pickyboy.yuquebackend.mapper;
 
-import com.pickyboy.yuquebackend.domain.entity.Likes;
+import java.util.List;
+
+import org.apache.ibatis.annotations.Param;
+
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.pickyboy.yuquebackend.domain.entity.Likes;
+import com.pickyboy.yuquebackend.domain.vo.user.ActivityRecord;
 
 /**
  * <p>
@@ -13,4 +18,5 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
  */
 public interface LikesMapper extends BaseMapper<Likes> {
 
+    List<ActivityRecord> likeHistory(@Param("userId") Long userId, @Param("offset") Integer offset, @Param("limit") Integer limit);
 }
