@@ -249,7 +249,7 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBasesMapper, 
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "知识库ID不能为空");
         }
 
-        // 验证知识库是否存在且当前用户有权限修改
+        // 验证知识库是否存在且当前用户有权限修改(包含验证知识库存在性)
         validateKnowledgeBaseOwnership(kbId);
 
         KnowledgeBases knowledgeBase = getById(kbId);
@@ -295,7 +295,7 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBasesMapper, 
     @Override
     @Transactional
     public boolean deleteKnowledgeBase(Long kbId) {
-        log.info("删除知识库: kbId={}", kbId);
+        log.info("逻辑删除知识库: kbId={}", kbId);
 
         if (kbId == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "知识库ID不能为空");
@@ -304,29 +304,15 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBasesMapper, 
         // 验证知识库是否存在且当前用户有权限删除
         validateKnowledgeBaseOwnership(kbId);
 
-        // 先删除知识库下的所有资源（逻辑删除）
-        List<Resources> resources = resourceService.list(
-            new LambdaQueryWrapper<Resources>()
-                .eq(Resources::getKnowledgeBaseId, kbId)
-        );
-
-        if (!resources.isEmpty()) {
-            List<Long> resourceIds = resources.stream()
-                .map(Resources::getId)
-                .collect(Collectors.toList());
-
-            // 批量逻辑删除资源
-            resourceService.removeByIds(resourceIds);
-            log.info("已删除知识库下的{}个资源", resourceIds.size());
-        }
-
-        // 删除知识库（逻辑删除）
+        // 【重构】直接对知识库进行逻辑删除，不再触动其下的资源
+        // 采用"非破坏性删除"设计模式，确保数据恢复的完整性
         boolean deleted = removeById(kbId);
         if (!deleted) {
+            // 在实践中，如果removeById（逻辑删除）返回false，通常意味着记录不存在或更新失败
             throw new BusinessException(ErrorCode.KNOWLEDGE_BASE_DELETE_FAILED);
         }
 
-        log.info("知识库删除成功: kbId={}", kbId);
+        log.info("知识库逻辑删除成功: kbId={}", kbId);
         return true;
     }
 
@@ -398,37 +384,18 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBasesMapper, 
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
 
-        // 获取已删除的知识库
+        // 1. 获取已删除的知识库 (这部分逻辑不变，是一次独立的查询)
         List<KnowledgeBases> deletedKnowledgeBases = list(
             new LambdaQueryWrapper<KnowledgeBases>()
                 .eq(KnowledgeBases::getUserId, userId)
                 .eq(KnowledgeBases::getIsDeleted, true)
-                    .orderByDesc(KnowledgeBases::getUpdatedAt)
+                .orderByDesc(KnowledgeBases::getUpdatedAt)
         );
 
-        // 获取用户的所有未删除知识库的ID列表
-        List<Long> existingKbIds = list(
-            new LambdaQueryWrapper<KnowledgeBases>()
-                .eq(KnowledgeBases::getUserId, userId)
-                .eq(KnowledgeBases::getIsDeleted, false)
-        ).stream().map(KnowledgeBases::getId).collect(Collectors.toList());
+        // 2. 【优化点】使用一次JOIN查询，直接获取所有符合条件的已删除文档
+        List<Resources> deletedResources = resourceService.listDeletedResourcesInActiveKbs(userId);
 
-        // 获取文档：只显示知识库还存在，但文档自身被删除的文档
-        List<Resources> deletedResources;
-        if (existingKbIds.isEmpty()) {
-            // 如果用户没有任何未删除的知识库，则回收站文档列表为空
-            deletedResources = List.of();
-        } else {
-            // 查找属于未删除知识库的已删除文档
-            deletedResources = resourceService.getBaseMapper().selectList(
-                new LambdaQueryWrapper<Resources>()
-                    .eq(Resources::getUserId, userId)
-                    .eq(Resources::getIsDeleted, true)
-                    .in(Resources::getKnowledgeBaseId, existingKbIds)
-                        .orderByDesc(Resources::getUpdatedAt)
-            );
-        }
-
+        // 3. 组装VO并返回
         TrashVO trashVO = new TrashVO();
         trashVO.setKnowledgeBases(deletedKnowledgeBases);
         trashVO.setResources(deletedResources);

@@ -2,4 +2,19 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.pickyboy.yuquebackend.mapper.ResourcesMapper">
 
+    <select id="selectDeletedResourcesInActiveKbs" resultType="com.pickyboy.yuquebackend.domain.entity.Resources">
+        SELECT
+            r.*
+        FROM
+            resources r
+        JOIN
+            knowledge_bases kb ON r.knowledge_base_id = kb.id
+        WHERE
+            r.user_id = #{userId}
+            AND r.is_deleted = 1
+            AND kb.is_deleted = 0
+        ORDER BY
+            r.updated_at DESC
+    </select>
+
 </mapper>

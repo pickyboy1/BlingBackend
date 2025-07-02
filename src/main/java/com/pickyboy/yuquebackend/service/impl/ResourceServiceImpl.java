@@ -725,6 +725,12 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         throw new UnsupportedOperationException("此方法尚未实现");
     }
 
+    @Override
+    public List<Resources> listDeletedResourcesInActiveKbs(Long userId) {
+        // 直接调用Mapper中的自定义方法
+        return baseMapper.selectDeletedResourcesInActiveKbs(userId);
+    }
+
     @Data
     public static class VisibilityRequest {
         private Integer visibility;

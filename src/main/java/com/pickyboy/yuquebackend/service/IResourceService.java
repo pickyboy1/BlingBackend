@@ -197,4 +197,11 @@ public interface IResourceService extends IService<Resources> {
      */
     List<PublicResourceVO> listExploreArticles();
 
+    /**
+     * 查询在未删除知识库中、但自身已被删除的文档列表
+     * @param userId 用户ID
+     * @return 文档列表
+     */
+    List<Resources> listDeletedResourcesInActiveKbs(Long userId);
+
 }
