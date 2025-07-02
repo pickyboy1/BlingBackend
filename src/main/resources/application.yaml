@@ -4,7 +4,7 @@ server:
     context-path: /api
 spring:
   application:
-    name: YuQue
+    name: Bling
   profiles:
     active: dev
   datasource:
@@ -36,7 +36,7 @@ logging:
   level:
     com.pickyboy: debug
     # 可以查看执行的SQL
-    com.pickyboy.yuquebackend.mapper: debug
+    com.pickyboy.blingBackend.mapper: debug
   pattern:
     dateformat: HH:mm:ss:SSS
 
