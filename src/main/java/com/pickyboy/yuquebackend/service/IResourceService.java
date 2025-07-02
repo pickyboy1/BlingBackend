@@ -208,4 +208,12 @@ public interface IResourceService extends IService<Resources> {
      */
     List<Resources> listDeletedResourcesInActiveKbs(Long userId);
 
+    /**
+     * 恢复资源到指定版本
+     *
+     * @param resId 资源ID
+     * @param versionId 版本ID
+     */
+    void restoreResourceToVersion(Long resId, Long versionId);
+
 }

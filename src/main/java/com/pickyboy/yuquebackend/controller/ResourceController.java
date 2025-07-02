@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.pickyboy.yuquebackend.common.response.PageResult;
 import com.pickyboy.yuquebackend.common.response.Result;
 import com.pickyboy.yuquebackend.domain.dto.comment.CommentCreateRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.CopyResourceRequest;
@@ -23,12 +24,14 @@ import com.pickyboy.yuquebackend.domain.dto.resource.MoveResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.RestoreResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceContentRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.UpdateResourceInfoRequest;
+import com.pickyboy.yuquebackend.domain.entity.ResourceVersions;
 import com.pickyboy.yuquebackend.domain.entity.Resources;
 import com.pickyboy.yuquebackend.domain.vo.comment.RootCommentVO;
 import com.pickyboy.yuquebackend.domain.vo.comment.SubCommentVO;
 import com.pickyboy.yuquebackend.domain.vo.resource.PublicResourceVO;
 import com.pickyboy.yuquebackend.domain.vo.resource.ShareUrlVO;
 import com.pickyboy.yuquebackend.service.IResourceService;
+import com.pickyboy.yuquebackend.service.IResourceVersionsService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +49,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ResourceController {
 
     private final IResourceService resourceService;
+    private final IResourceVersionsService resourceVersionsService;
 
     /**
      * 在知识库中新建资源
@@ -289,6 +293,53 @@ public class ResourceController {
     public Result<Void> createSubmission(@RequestBody Object submissionRequest) {
         log.info("提交投稿: request={}", submissionRequest);
         resourceService.createSubmission(submissionRequest);
+        return Result.success();
+    }
+
+    /**
+     * 分页查询资源版本历史
+     * GET /resources/{resId}/versions
+     */
+    @GetMapping("/resources/{resId}/versions")
+    public Result<PageResult<ResourceVersions>> listResourceVersions(
+            @PathVariable Long resId,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer limit) {
+        log.info("分页查询资源版本历史: resId={}, page={}, limit={}", resId, page, limit);
+        PageResult<ResourceVersions> pageResult = resourceVersionsService.getResourceVersionsPage(resId, page, limit);
+        return Result.success(pageResult);
+    }
+
+    /**
+     * 获取资源版本详情
+     * GET /resources/versions/{versionId}
+     */
+    @GetMapping("/resources/versions/{versionId}")
+    public Result<ResourceVersions> getResourceVersion(@PathVariable Long versionId) {
+        log.info("获取资源版本详情: versionId={}", versionId);
+        ResourceVersions version = resourceVersionsService.getById(versionId);
+        return Result.success(version);
+    }
+
+    /**
+     * 删除指定资源版本
+     * DELETE /resources/versions/{versionId}
+     */
+    @DeleteMapping("/resources/versions/{versionId}")
+    public Result<Void> deleteResourceVersion(@PathVariable Long versionId) {
+        log.info("删除资源版本: versionId={}", versionId);
+        resourceVersionsService.deleteResourceVersionById(versionId);
+        return Result.success();
+    }
+
+    /**
+     * 恢复资源到指定版本
+     * POST /resources/{resId}/versions/{versionId}/restore
+     */
+    @PostMapping("/resources/{resId}/versions/{versionId}/restore")
+    public Result<Void> restoreResourceToVersion(@PathVariable Long resId, @PathVariable Long versionId) {
+        log.info("恢复资源到指定版本: resId={}, versionId={}", resId, versionId);
+        resourceService.restoreResourceToVersion(resId, versionId);
         return Result.success();
     }
 

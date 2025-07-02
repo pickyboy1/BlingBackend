@@ -8,8 +8,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import com.pickyboy.yuquebackend.common.constants.RedisKeyConstants;
-import com.pickyboy.yuquebackend.common.utils.RedisUtil;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,10 +15,12 @@ import org.springframework.transaction.annotation.Transactional;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.pickyboy.yuquebackend.common.constants.RedisKeyConstants;
 import com.pickyboy.yuquebackend.common.exception.BusinessException;
 import com.pickyboy.yuquebackend.common.exception.ErrorCode;
 import com.pickyboy.yuquebackend.common.utils.CurrentHolder;
 import com.pickyboy.yuquebackend.common.utils.MinioUtil;
+import com.pickyboy.yuquebackend.common.utils.RedisUtil;
 import com.pickyboy.yuquebackend.domain.dto.comment.CommentCreateRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.CopyResourceRequest;
 import com.pickyboy.yuquebackend.domain.dto.resource.CreateResourceRequest;
@@ -170,8 +170,9 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         if (updateRequest.getContent() != null) {
             String oldContent = resource.getContent();
             String newContent = updateRequest.getContent();
-            // 如果更新了内容，则创建资源版本记录
-            if (!oldContent.equals(newContent)) {
+            // 如果更新了内容且旧内容不为空（首次创建不触发），则创建资源版本记录
+            if (oldContent != null && !oldContent.equals(newContent)) {
+                log.info("内容发生变化，创建版本记录: resId={}, oldContent={}", resource.getId(), oldContent);
                 resourceVersionsService.createResourceVersion(resource.getId(), oldContent);
             }
             resource.setContent(newContent);
@@ -871,6 +872,54 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
     public List<Resources> listDeletedResourcesInActiveKbs(Long userId) {
         // 直接调用Mapper中的自定义方法
         return baseMapper.selectDeletedResourcesInActiveKbs(userId);
+    }
+
+    @Override
+    @Transactional // 【关键修复】恢复操作涉及多次数据库写操作，必须保证原子性
+    public void restoreResourceToVersion(Long resId, Long versionId) {
+        log.info("恢复资源到指定版本: resId={}, versionId={}", resId, versionId);
+
+        Long userId = CurrentHolder.getCurrentUserId();
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+
+        // 1. 验证目标版本是否存在且属于该资源
+        com.pickyboy.yuquebackend.domain.entity.ResourceVersions targetVersion = resourceVersionsService.getById(versionId);
+        if (targetVersion == null || !targetVersion.getResourceId().equals(resId)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "指定版本不存在或不属于该资源");
+        }
+
+        // 2. 验证资源权限
+        Resources resource = baseMapper.selectResourceInActiveKb(resId); // 简化处理，常规场景下已足够
+        if (resource == null) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "资源不存在或其知识库已被删除");
+        }
+
+        if (!resource.getUserId().equals(userId)) {
+            throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED);
+        }
+
+        String currentContentUrl = resource.getContent();
+        String targetContentUrl = targetVersion.getObjectUrl();
+
+        // 3. 如果当前内容与目标内容不同，则将当前内容归档为新版本
+        if (currentContentUrl != null && !currentContentUrl.equals(targetContentUrl)) {
+            log.info("当前内容与目标版本不同，将当前内容归档: resId={}, currentContent={}", resId, currentContentUrl);
+            resourceVersionsService.createResourceVersion(resId, currentContentUrl);
+        }
+
+        // 4. 将目标版本的内容URL更新到主资源记录中
+        resource.setContent(targetContentUrl);
+        boolean updated = updateById(resource);
+        if (!updated) {
+            throw new BusinessException(ErrorCode.VERSION_RESTORE_FAILED, "恢复版本时更新资源失败");
+        }
+
+        // 【优化建议】恢复版本后，不应删除该历史版本记录，以便未来还能再次恢复
+        // resourceVersionsService.deleteResourceVersionById(versionId);
+
+        log.info("成功恢复资源到指定版本: resId={}, versionId={}, newContent={}", resId, versionId, targetContentUrl);
     }
 
     @Data

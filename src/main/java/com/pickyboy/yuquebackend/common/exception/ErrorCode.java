@@ -53,7 +53,7 @@ public enum ErrorCode {
     DATA_ALREADY_EXISTS(5002, "数据已存在"),
     DATA_CONFLICT(5003, "数据冲突"),
     INSUFFICIENT_PERMISSIONS(5004, "权限不足"),
-
+    VERSION_RESTORE_FAILED(5005, "版本恢复失败"),
     // 评论相关错误码 (7000-7999)
     COMMENT_NOT_FOUND(7001, "评论不存在"),
     COMMENT_DELETE_FAILED(7002, "评论删除失败"),
