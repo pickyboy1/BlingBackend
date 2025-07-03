@@ -24,13 +24,14 @@ public interface INoteService extends IService<Notes> {
      * 获取小记列表
      *
      * @param tagId 标签ID（可选）
+     * @param keyword 搜索关键词（可选）
      * @param page 页码
      * @param limit 每页数量
      * @param sortBy 排序字段
      * @param order 排序方式
      * @return 小记列表
      */
-    List<NoteListVO> getNoteList(Long tagId, Integer page, Integer limit, String sortBy, String order);
+    List<NoteListVO> getNoteList(Long tagId, String keyword, Integer page, Integer limit, String sortBy, String order);
 
     /**
      * 创建小记
@@ -46,7 +47,7 @@ public interface INoteService extends IService<Notes> {
      * @param keyword 搜索关键词
      * @return 搜索结果
      */
-    List<?> searchNotes(String keyword);
+    List<NoteListVO> searchNotes(String keyword);
 
     /**
      * 获取指定小记的详情
