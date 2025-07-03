@@ -1,20 +1,33 @@
 package com.pickyboy.blingBackend.service;
 
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.pickyboy.yuquebackend.common.response.PageResult;
+import com.pickyboy.yuquebackend.domain.dto.tag.CreateTagRequest;
+import com.pickyboy.yuquebackend.domain.dto.tag.DeleteTagsRequest;
+import com.pickyboy.yuquebackend.domain.dto.tag.QueryTagsRequest;
+import com.pickyboy.yuquebackend.domain.dto.tag.UpdateTagRequest;
+import com.pickyboy.yuquebackend.domain.entity.Tags;
+import com.pickyboy.yuquebackend.domain.vo.tag.TagVO;
+
 import java.util.List;
 
 /**
  * 标签服务接口
  *
- * @author pickyboy
+ * @author shiqi
  */
-public interface ITagService {
+public interface ITagService extends IService<Tags> {
 
     /**
      * 获取当前用户的所有标签
      *
+     * @param page 页码
+     * @param limit 每页数量
+     * @param sortBy 排序字段
+     * @param order 排序方式
      * @return 标签列表
      */
-    List<?> getUserTags();
+    List<TagVO> getUserTags(Integer page, Integer limit, String sortBy, String order);
 
     /**
      * 创建新标签
@@ -22,21 +35,20 @@ public interface ITagService {
      * @param createRequest 创建请求
      * @return 标签信息
      */
-    Object createTag(Object createRequest);
+    TagVO createTag(CreateTagRequest createRequest);
 
     /**
      * 修改标签名
      *
      * @param tagId 标签ID
      * @param updateRequest 更新请求
-     * @return 更新后的标签信息
      */
-    Object updateTag(Long tagId, Object updateRequest);
+    void updateTag(Long tagId, UpdateTagRequest updateRequest);
 
     /**
-     * 删除标签
+     * 批量删除标签
      *
-     * @param tagId 标签ID
+     * @param deleteRequest 删除请求
      */
-    void deleteTag(Long tagId);
+    void deleteTags(DeleteTagsRequest deleteRequest);
 }

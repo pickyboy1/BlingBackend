@@ -1,28 +1,42 @@
 package com.pickyboy.blingBackend.service;
 
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.pickyboy.yuquebackend.common.response.PageResult;
+import com.pickyboy.yuquebackend.domain.dto.note.*;
+import com.pickyboy.yuquebackend.domain.entity.Notes;
+import com.pickyboy.yuquebackend.domain.vo.note.NoteDetailVO;
+import com.pickyboy.yuquebackend.domain.vo.note.NoteListVO;
+import com.pickyboy.yuquebackend.domain.vo.tag.TagSimpleVO;
+import com.pickyboy.yuquebackend.domain.vo.tag.TagVO;
+
 import java.util.List;
 
 /**
  * 小记服务接口
  *
- * @author pickyboy
+ * @author shiqi
  */
-public interface INoteService {
+public interface INoteService extends IService<Notes> {
 
     /**
      * 获取小记列表
      *
+     * @param tagId 标签ID（可选）
+     * @param page 页码
+     * @param limit 每页数量
+     * @param sortBy 排序字段
+     * @param order 排序方式
      * @return 小记列表
      */
-    List<?> getNotes();
+    List<NoteListVO> getNoteList(Long tagId, Integer page, Integer limit, String sortBy, String order);
 
     /**
      * 创建小记
      *
-     * @param createRequest 创建请求
+     * @param createNoteRequest 创建请求
      * @return 小记信息
      */
-    Object createNote(Object createRequest);
+    NoteDetailVO createNote(CreateNoteRequest createNoteRequest);
 
     /**
      * 搜索小记 (ES实现)
@@ -38,31 +52,38 @@ public interface INoteService {
      * @param noteId 小记ID
      * @return 小记详情
      */
-    Object getNoteDetail(Long noteId);
+    NoteDetailVO getNoteDetail(Long noteId);
 
     /**
      * 更新小记
      *
      * @param noteId 小记ID
-     * @param updateRequest 更新请求
-     * @return 更新后的小记
+     * @param updateNoteRequest 更新请求
      */
-    Object updateNote(Long noteId, Object updateRequest);
+    void updateNote(Long noteId, UpdateNoteRequest updateNoteRequest);
 
     /**
-     * 删除小记 (逻辑删除)
+     * 批量删除小记 (逻辑删除)
      *
-     * @param noteId 小记ID
+     * @param deleteNotesRequest 删除请求
      */
-    void deleteNote(Long noteId);
+    void deleteNotes(DeleteNotesRequest deleteNotesRequest);
 
     /**
-     * 为小记打上标签
+     * 获取小记的标签列表
      *
      * @param noteId 小记ID
-     * @param tagRequest 标签请求
+     * @return 标签列表
      */
-    void addNoteTag(Long noteId, Object tagRequest);
+    List<TagSimpleVO> getNoteTags(Long noteId);
+
+    /**
+     * 设置小记的标签
+     *
+     * @param noteId 小记ID
+     * @param setNoteTagsRequest 设置小记标签请求
+     */
+    void setNoteTags(Long noteId, SetNoteTagsRequest setNoteTagsRequest);
 
     /**
      * 移除小记的某个标签

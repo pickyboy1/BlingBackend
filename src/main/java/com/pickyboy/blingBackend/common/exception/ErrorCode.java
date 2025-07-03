@@ -54,6 +54,10 @@ public enum ErrorCode {
     DATA_CONFLICT(5003, "数据冲突"),
     INSUFFICIENT_PERMISSIONS(5004, "权限不足"),
     VERSION_RESTORE_FAILED(5005, "版本恢复失败"),
+
+    // 标签及小记相关错误码 (6000-6999)
+    TAG_NAME_DUPLICATE(6001,"标签名已存在"),
+
     // 评论相关错误码 (7000-7999)
     COMMENT_NOT_FOUND(7001, "评论不存在"),
     COMMENT_DELETE_FAILED(7002, "评论删除失败"),
