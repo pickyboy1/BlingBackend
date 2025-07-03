@@ -40,6 +40,7 @@ public class NoteController {
      * GET /notes
      *
      * @param tagId 标签ID（可选）
+     * @param keyword 搜索关键词（可选）
      * @param page 页码
      * @param limit 每页数量
      * @param sortBy 排序字段
@@ -49,11 +50,13 @@ public class NoteController {
     @GetMapping("/notes")
     public Result<List<NoteListVO>> getNoteList(
             @RequestParam(required = false) Long tagId,
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "20") Integer limit,
             @RequestParam(defaultValue = "updatedAt") String sortBy,
             @RequestParam(defaultValue = "desc") String order) {
-        List<NoteListVO> result = noteService.getNoteList(tagId, page, limit, sortBy, order);
+
+        List<NoteListVO> result = noteService.getNoteList(tagId, keyword, page, limit, sortBy, order);
         return Result.success(result);
     }
 

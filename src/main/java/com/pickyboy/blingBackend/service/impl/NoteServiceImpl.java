@@ -53,10 +53,15 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
     private INoteTagMapService noteTagMapService;
 
     @Override
-    public List<NoteListVO> getNoteList(Long tagId, Integer page, Integer limit, String sortBy, String order) {
+    public List<NoteListVO> getNoteList(Long tagId,String keyword, Integer page, Integer limit, String sortBy, String order) {
         Long userId = CurrentHolder.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+
+        // 如果提供了搜索关键词，优先使用搜索功能（忽略分页参数）
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            return searchNotes(keyword);
         }
 
         // 构建分页对象
@@ -338,11 +343,34 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
                 .collect(Collectors.toList());
     }
 
-  // todo: 模糊匹配title,返回
+    /**
+     * 搜索小记 (模糊匹配content)
+     */
     @Override
-    public List<?> searchNotes(String keyword) {
+    public List<NoteListVO> searchNotes(String keyword) {
         log.info("搜索小记: keyword={}", keyword);
-        throw new UnsupportedOperationException("待实现");
+
+        Long userId = CurrentHolder.getCurrentUserId();
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 构建查询条件 - 模糊匹配content
+        LambdaQueryWrapper<Notes> wrapper = new LambdaQueryWrapper<Notes>()
+                .eq(Notes::getUserId, userId)
+                .like(Notes::getContent, keyword.trim())
+                .orderByDesc(Notes::getUpdatedAt); // 按更新时间倒序
+
+        List<Notes> notes = list(wrapper);
+
+        // 转换为VO
+        return notes.stream()
+                .map(this::convertToNoteListVO)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -391,36 +419,27 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
     /**
      * 从content生成title（前200字符）
      */
-    // todo: 更正生成title逻辑
     private String generateTitleFromContent(String content) {
         if (content == null || content.trim().isEmpty()) {
-            return "无标题";
+            return "无内容";
         }
 
         String trimmedContent = content.trim();
 
-        // 移除多余的空白字符和换行符，用空格替代
-        String cleanedContent = trimmedContent.replaceAll("\\s+", " ");
-
-        if (cleanedContent.length() <= 200) {
-            return cleanedContent;
+        // 按换行符分割，取第一行
+        String[] lines = trimmedContent.split("\\r?\\n");
+        String firstLine = lines[0].trim();
+        if(firstLine.length()>15){
+            firstLine = firstLine.substring(0,15);
+            firstLine+="...";
         }
 
-        // 截取前200个字符，并尝试在最后一个完整的词处截断
-        String truncated = cleanedContent.substring(0, 200);
-
-        // 查找最后一个空格、句号、感叹号或问号的位置
-        int lastPunctuation = Math.max(
-                Math.max(truncated.lastIndexOf(' '), truncated.lastIndexOf('。')),
-                Math.max(truncated.lastIndexOf('！'), truncated.lastIndexOf('？'))
-        );
-
-        // 如果找到了合适的截断点且位置合理（不要太靠前）
-        if (lastPunctuation > 150) {
-            return truncated.substring(0, lastPunctuation) + "...";
+        // 如果第一行为空，返回"无内容"
+        if (firstLine.isEmpty()) {
+            return "无内容";
         }
 
-        return truncated + "...";
+        return firstLine;
     }
 
     /**
