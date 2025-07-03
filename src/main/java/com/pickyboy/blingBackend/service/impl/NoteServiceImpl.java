@@ -391,6 +391,7 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
     /**
      * 从content生成title（前200字符）
      */
+    // todo: 更正生成title逻辑
     private String generateTitleFromContent(String content) {
         if (content == null || content.trim().isEmpty()) {
             return "无标题";
