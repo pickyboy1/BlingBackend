@@ -41,7 +41,7 @@ public interface INoteService extends IService<Notes> {
     NoteDetailVO createNote(CreateNoteRequest createNoteRequest);
 
     /**
-     * 搜索小记 (ES实现)
+     * 搜索小记 (只搜索title,直接用数据库模糊搜索)
      *
      * @param keyword 搜索关键词
      * @return 搜索结果
@@ -87,11 +87,5 @@ public interface INoteService extends IService<Notes> {
      */
     void setNoteTags(Long noteId, SetNoteTagsRequest setNoteTagsRequest);
 
-    /**
-     * 移除小记的某个标签
-     *
-     * @param noteId 小记ID
-     * @param tagId 标签ID
-     */
-    void removeNoteTag(Long noteId, Long tagId);
+
 }

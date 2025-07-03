@@ -136,7 +136,7 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
             setNoteTagsInternal(note.getId(), createNoteRequest.getTagIds());
         }
 
-        // 重新查询保存后的完整数据（包含自动生成的时间戳）
+        // 重新查询保存后的完整数据（包含自动生成的时间戳,及标签列表）
         Notes savedNote = getById(note.getId());
         return convertToNoteDetailVO(savedNote);
     }
@@ -192,6 +192,7 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
     }
 
     @Override
+    @Transactional
     public void deleteNotes(DeleteNotesRequest deleteNotesRequest) {
         List<String> noteIds = deleteNotesRequest.getNoteIds();
 
@@ -247,6 +248,7 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
             }
 
             // 更新标签引用计数
+            // todo: 写XML方法,批量更新
             for (Map.Entry<Long, Long> entry : tagDecrementMap.entrySet()) {
                 Long tagId = entry.getKey();
                 Long decrementCount = entry.getValue();
@@ -336,12 +338,7 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
                 .collect(Collectors.toList());
     }
 
-    @Override
-    public void removeNoteTag(Long noteId, Long tagId) {
-        log.info("移除小记标签: noteId={}, tagId={}", noteId, tagId);
-        throw new UnsupportedOperationException("待实现");
-    }
-
+  // todo: 模糊匹配title,返回
     @Override
     public List<?> searchNotes(String keyword) {
         log.info("搜索小记: keyword={}", keyword);
@@ -433,34 +430,6 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
         return truncated + "...";
     }
 
-    // 新增：生成内容摘要的方法
-    private String generateContentSummary(String content) {
-        if (content == null || content.trim().isEmpty()) {
-            return "";
-        }
-
-        String trimmedContent = content.trim();
-        String cleanedContent = trimmedContent.replaceAll("\\s+", " ");
-
-        if (cleanedContent.length() <= 200) {
-            return cleanedContent;
-        }
-
-        String truncated = cleanedContent.substring(0, 200);
-
-        // 查找最后一个合适的截断点
-        int lastPunctuation = Math.max(
-                Math.max(truncated.lastIndexOf(' '), truncated.lastIndexOf('。')),
-                Math.max(truncated.lastIndexOf('！'), truncated.lastIndexOf('？'))
-        );
-
-        if (lastPunctuation > 150) {
-            return truncated.substring(0, lastPunctuation) + "...";
-        }
-
-        return truncated + "...";
-    }
-
     /**
      * 转换为TagSimpleVO
      */
@@ -487,7 +456,7 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
                     .filter(Objects::nonNull)
                     .map(Long::valueOf)
                     .collect(Collectors.toList());
-
+                // 验证标签是否属于当前用户
             if (!longTagIds.isEmpty()) {
                 Long userId = CurrentHolder.getCurrentUserId();
                 long tagCount = tagService.count(
@@ -502,16 +471,17 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
             }
         }
 
-        // 获取当前标签关联
+        // 获取当前小记关联的标签
         List<NoteTagMap> currentRelations = noteTagMapService.list(
                 new LambdaQueryWrapper<NoteTagMap>()
                         .eq(NoteTagMap::getNoteId, noteId)
         );
-
+        // 当前关联了的标签ID
         Set<Long> currentTagIds = currentRelations.stream()
                 .map(NoteTagMap::getTagId)
                 .collect(Collectors.toSet());
 
+        // 新的标签ID
         Set<Long> newTagIdSet = tagIds != null ?
                 tagIds.stream()
                         .filter(Objects::nonNull)
@@ -521,9 +491,11 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
 
         // 计算需要添加和删除的标签
         Set<Long> toAdd = new HashSet<>(newTagIdSet);
+        // 需要添加的关联记录
         toAdd.removeAll(currentTagIds);
 
         Set<Long> toRemove = new HashSet<>(currentTagIds);
+        // 需要删除的关联记录
         toRemove.removeAll(newTagIdSet);
 
         // 删除不需要的关联
@@ -561,13 +533,12 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
             }
 
             // 更新标签引用计数
-            for (Long tagId : toAdd) {
+            // todo:
                 tagService.update(
                         new LambdaUpdateWrapper<Tags>()
-                                .eq(Tags::getId, tagId)
-                                .setSql("refered_count = refered_count + 1")
-                );
-            }
+                                .in(Tags::getId, toAdd)
+                                .setSql("refered_count = refered_count + 1"));
+
         }
 
         log.info("设置小记标签成功，noteId: {}, 添加: {}, 删除: {}",
