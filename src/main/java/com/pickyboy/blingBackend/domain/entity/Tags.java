@@ -43,6 +43,11 @@ public class Tags implements Serializable {
     private String name;
 
     /**
+     * 标签被引用数
+     */
+    private Integer referedCount;
+
+    /**
      * 创建时间
      */
     @TableField(fill = FieldFill.INSERT)
