@@ -1,13 +1,13 @@
 package com.pickyboy.blingBackend.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.pickyboy.yuquebackend.common.response.PageResult;
-import com.pickyboy.yuquebackend.domain.dto.tag.CreateTagRequest;
-import com.pickyboy.yuquebackend.domain.dto.tag.DeleteTagsRequest;
-import com.pickyboy.yuquebackend.domain.dto.tag.QueryTagsRequest;
-import com.pickyboy.yuquebackend.domain.dto.tag.UpdateTagRequest;
-import com.pickyboy.yuquebackend.domain.entity.Tags;
-import com.pickyboy.yuquebackend.domain.vo.tag.TagVO;
+
+import com.pickyboy.blingBackend.domain.dto.tag.CreateTagRequest;
+import com.pickyboy.blingBackend.domain.dto.tag.DeleteTagsRequest;
+import com.pickyboy.blingBackend.domain.dto.tag.UpdateTagRequest;
+
+import com.pickyboy.blingBackend.domain.entity.Tags;
+import com.pickyboy.blingBackend.domain.vo.tag.TagVO;
 
 import java.util.List;
 

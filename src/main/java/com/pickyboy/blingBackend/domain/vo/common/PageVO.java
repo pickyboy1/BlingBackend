@@ -1,4 +1,4 @@
-package com.pickyboy.yuquebackend.domain.vo.common;
+package com.pickyboy.blingBackend.domain.vo.common;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

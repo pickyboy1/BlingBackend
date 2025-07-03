@@ -1,13 +1,15 @@
 package com.pickyboy.blingBackend.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.pickyboy.blingBackend.domain.dto.note.CreateNoteRequest;
+import com.pickyboy.blingBackend.domain.dto.note.DeleteNotesRequest;
+import com.pickyboy.blingBackend.domain.dto.note.SetNoteTagsRequest;
+import com.pickyboy.blingBackend.domain.dto.note.UpdateNoteRequest;
 import com.pickyboy.yuquebackend.common.response.PageResult;
-import com.pickyboy.yuquebackend.domain.dto.note.*;
 import com.pickyboy.yuquebackend.domain.entity.Notes;
-import com.pickyboy.yuquebackend.domain.vo.note.NoteDetailVO;
-import com.pickyboy.yuquebackend.domain.vo.note.NoteListVO;
-import com.pickyboy.yuquebackend.domain.vo.tag.TagSimpleVO;
-import com.pickyboy.yuquebackend.domain.vo.tag.TagVO;
+import com.pickyboy.blingBackend.domain.vo.note.NoteDetailVO;
+import com.pickyboy.blingBackend.domain.vo.note.NoteListVO;
+import com.pickyboy.blingBackend.domain.vo.tag.TagSimpleVO;
 
 import java.util.List;
 

@@ -1,4 +1,4 @@
-package com.pickyboy.yuquebackend.domain.vo.tag;
+package com.pickyboy.blingBackend.domain.vo.tag;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

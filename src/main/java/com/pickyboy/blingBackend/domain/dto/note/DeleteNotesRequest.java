@@ -1,4 +1,4 @@
-package com.pickyboy.yuquebackend.domain.dto.note;
+package com.pickyboy.blingBackend.domain.dto.note;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;

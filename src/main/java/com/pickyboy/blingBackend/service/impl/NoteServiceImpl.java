@@ -7,19 +7,23 @@ import java.util.stream.Collectors;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.pickyboy.yuquebackend.common.exception.BusinessException;
-import com.pickyboy.yuquebackend.common.exception.ErrorCode;
-import com.pickyboy.yuquebackend.common.response.PageResult;
-import com.pickyboy.yuquebackend.common.utils.CurrentHolder;
-import com.pickyboy.yuquebackend.domain.dto.note.*;
-import com.pickyboy.yuquebackend.domain.entity.NoteTagMap;
-import com.pickyboy.yuquebackend.domain.entity.Tags;
-import com.pickyboy.yuquebackend.domain.vo.note.NoteDetailVO;
-import com.pickyboy.yuquebackend.domain.vo.note.NoteListVO;
-import com.pickyboy.yuquebackend.domain.vo.tag.TagSimpleVO;
-import com.pickyboy.yuquebackend.domain.vo.tag.TagVO;
-import com.pickyboy.yuquebackend.service.INoteTagMapService;
-import com.pickyboy.yuquebackend.service.ITagService;
+
+import com.pickyboy.blingBackend.common.exception.BusinessException;
+import com.pickyboy.blingBackend.common.exception.ErrorCode;
+import com.pickyboy.blingBackend.common.utils.CurrentHolder;
+import com.pickyboy.blingBackend.domain.dto.note.CreateNoteRequest;
+import com.pickyboy.blingBackend.domain.dto.note.DeleteNotesRequest;
+import com.pickyboy.blingBackend.domain.dto.note.SetNoteTagsRequest;
+import com.pickyboy.blingBackend.domain.dto.note.UpdateNoteRequest;
+import com.pickyboy.blingBackend.domain.entity.NoteTagMap;
+import com.pickyboy.blingBackend.domain.entity.Tags;
+import com.pickyboy.blingBackend.service.INoteTagMapService;
+import com.pickyboy.blingBackend.service.ITagService;
+
+import com.pickyboy.blingBackend.domain.vo.note.NoteDetailVO;
+import com.pickyboy.blingBackend.domain.vo.note.NoteListVO;
+import com.pickyboy.blingBackend.domain.vo.tag.TagSimpleVO;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -31,7 +35,6 @@ import com.pickyboy.blingBackend.service.INoteService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 /**
  * 小记服务实现类

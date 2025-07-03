@@ -1,4 +1,4 @@
-package com.pickyboy.yuquebackend.domain.dto.note;
+package com.pickyboy.blingBackend.domain.dto.note;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;

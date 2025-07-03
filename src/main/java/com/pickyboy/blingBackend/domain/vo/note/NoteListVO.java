@@ -1,6 +1,6 @@
-package com.pickyboy.yuquebackend.domain.vo.note;
+package com.pickyboy.blingBackend.domain.vo.note;
 
-import com.pickyboy.yuquebackend.domain.vo.tag.TagSimpleVO;
+import com.pickyboy.blingBackend.domain.vo.tag.TagSimpleVO;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

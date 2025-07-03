@@ -1,13 +1,16 @@
-package com.pickyboy.yuquebackend.controller;
+package com.pickyboy.blingBackend.controller;
 
-import com.pickyboy.yuquebackend.common.response.PageResult;
-import com.pickyboy.yuquebackend.common.response.Result;
-import com.pickyboy.yuquebackend.domain.dto.note.*;
-import com.pickyboy.yuquebackend.domain.vo.note.NoteDetailVO;
-import com.pickyboy.yuquebackend.domain.vo.note.NoteListVO;
-import com.pickyboy.yuquebackend.domain.vo.tag.TagSimpleVO;
-import com.pickyboy.yuquebackend.domain.vo.tag.TagVO;
-import com.pickyboy.yuquebackend.service.INoteService;
+
+import com.pickyboy.blingBackend.common.response.Result;
+import com.pickyboy.blingBackend.domain.dto.note.CreateNoteRequest;
+import com.pickyboy.blingBackend.domain.dto.note.DeleteNotesRequest;
+import com.pickyboy.blingBackend.domain.dto.note.SetNoteTagsRequest;
+import com.pickyboy.blingBackend.domain.dto.note.UpdateNoteRequest;
+import com.pickyboy.blingBackend.service.INoteService;
+import com.pickyboy.blingBackend.domain.vo.note.NoteDetailVO;
+import com.pickyboy.blingBackend.domain.vo.note.NoteListVO;
+import com.pickyboy.blingBackend.domain.vo.tag.TagSimpleVO;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

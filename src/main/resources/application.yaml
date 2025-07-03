@@ -8,9 +8,9 @@ spring:
   profiles:
     active: dev
   datasource:
-    url: jdbc:mysql://${pickyboy.db.host}:3306/noteandtag?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://${pickyboy.db.host}:3306/YuQue?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai
     driver-class-name: com.mysql.cj.jdbc.Driver
-    username: root
+    username: yuque
     password: ${pickyboy.db.pw}
 # Redis
   data:
