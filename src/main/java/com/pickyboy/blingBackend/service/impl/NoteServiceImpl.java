@@ -112,7 +112,6 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
     @Override
     @Transactional
     public NoteDetailVO createNote(CreateNoteRequest createNoteRequest) {
-        // TODO: 测试创建小记逻辑（还未修改完成）
         log.info("创建新的小记: title={}");
 
         Long userId = CurrentHolder.getCurrentUserId();
@@ -144,7 +143,6 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
 
     @Override
     public NoteDetailVO getNoteDetail(Long noteId) {
-        // TODO: 测试获取小记详情逻辑
         log.info("获取小记详情: noteId={}", noteId);
 
         Long userId = CurrentHolder.getCurrentUserId();
@@ -167,7 +165,6 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
 
     @Override
     public void updateNote(Long noteId, UpdateNoteRequest updateNoteRequest) {
-        // TODO: 测试更新小记逻辑（还未完成修改）
         log.info("更新小记: noteId={}", noteId);
 
         Long userId = CurrentHolder.getCurrentUserId();
@@ -196,7 +193,6 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
 
     @Override
     public void deleteNotes(DeleteNotesRequest deleteNotesRequest) {
-        // TODO: 测试删除小记逻辑
         List<String> noteIds = deleteNotesRequest.getNoteIds();
 
         log.info("批量删除小记: noteIds={}", noteIds);
@@ -273,7 +269,6 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
     @Override
     @Transactional
     public void setNoteTags(Long noteId, SetNoteTagsRequest setNoteTagsRequest) {
-        // TODO:测试设置小记的标签逻辑
         List<String> tagIds = setNoteTagsRequest.getTagIds();
 
         log.info("设置小记标签: noteId={}, tagIds={}", noteId, tagIds);
@@ -299,7 +294,6 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
 
     @Override
     public List<TagSimpleVO> getNoteTags(Long noteId){
-        // TODO: 测试获取小记标签列表逻辑
         log.info("获取小记标签: noteId={}", noteId);
 
         Long userId = CurrentHolder.getCurrentUserId();
@@ -344,14 +338,12 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
 
     @Override
     public void removeNoteTag(Long noteId, Long tagId) {
-        // TODO: 实现移除小记标签逻辑
         log.info("移除小记标签: noteId={}, tagId={}", noteId, tagId);
         throw new UnsupportedOperationException("待实现");
     }
 
     @Override
     public List<?> searchNotes(String keyword) {
-        // TODO: 实现搜索小记逻辑
         log.info("搜索小记: keyword={}", keyword);
         throw new UnsupportedOperationException("待实现");
     }
