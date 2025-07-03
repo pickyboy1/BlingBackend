@@ -1,10 +1,11 @@
 package com.pickyboy.blingBackend.service.impl;
 
+import org.springframework.stereotype.Service;
+
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.pickyboy.blingBackend.domain.entity.ViewHistories;
 import com.pickyboy.blingBackend.mapper.ViewHistoriesMapper;
 import com.pickyboy.blingBackend.service.IViewHistoriesService;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import org.springframework.stereotype.Service;
 
 /**
  * <p>

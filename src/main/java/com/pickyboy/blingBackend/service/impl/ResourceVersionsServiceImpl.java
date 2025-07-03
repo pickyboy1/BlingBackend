@@ -34,6 +34,7 @@ public class ResourceVersionsServiceImpl extends ServiceImpl<ResourceVersionsMap
     private final MinioUtil minioUtil;
 
     @Override
+    @Transactional
     public void createResourceVersion(Long resId, String oldContent) {
         log.info("创建资源版本: resId={}", resId);
         ResourceVersions resourceVersion = new ResourceVersions();
@@ -74,6 +75,7 @@ public class ResourceVersionsServiceImpl extends ServiceImpl<ResourceVersionsMap
     }
 
     @Override
+    @Transactional
     public void deleteResourceVersion(Long resId) {
         log.info("删除资源所有版本: resId={}", resId);
 

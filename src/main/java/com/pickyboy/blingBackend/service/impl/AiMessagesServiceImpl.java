@@ -1,10 +1,11 @@
 package com.pickyboy.blingBackend.service.impl;
 
+import org.springframework.stereotype.Service;
+
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.pickyboy.blingBackend.domain.entity.AiMessages;
 import com.pickyboy.blingBackend.mapper.AiMessagesMapper;
 import com.pickyboy.blingBackend.service.IAiMessagesService;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import org.springframework.stereotype.Service;
 
 /**
  * <p>
