@@ -385,14 +385,6 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
             vo.setUpdatedAt(note.getUpdatedAt().format(formatter));
         }
 
-        // 根据你的需求，如果列表页面也需要content，取消下面的注释
-        // 添加内容摘要（前200字符） - 根据你的反馈，这个可能不需要
-        // vo.setContent(generateContentSummary(note.getContent()));
-
-        // 获取关联的标签 - 根据你的反馈，这个可能不需要
-        // List<TagSimpleVO> tags = getNoteTags(note.getId());
-        // vo.setTags(tags);
-
         return vo;
     }
 
@@ -507,13 +499,15 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
             );
 
             // 更新标签引用计数
-            for (Long tagId : toRemove) {
+
+            // todo: 改为批量更新
+
                 tagService.update(
                         new LambdaUpdateWrapper<Tags>()
-                                .eq(Tags::getId, tagId)
-                                .setSql("refered_count = GREATEST(refered_count - 1, 0)")
-                );
-            }
+                                .in(Tags::getId, toRemove)
+                                .setSql("refered_count = GREATEST(refered_count - 1, 0)"));
+
+
         }
 
         // 添加新的关联
@@ -533,7 +527,6 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
             }
 
             // 更新标签引用计数
-            // todo:
                 tagService.update(
                         new LambdaUpdateWrapper<Tags>()
                                 .in(Tags::getId, toAdd)
