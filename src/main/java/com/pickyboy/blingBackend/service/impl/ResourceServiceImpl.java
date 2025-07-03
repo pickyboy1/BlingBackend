@@ -16,6 +16,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.pickyboy.blingBackend.common.constants.RedisKeyConstants;
+import com.pickyboy.blingBackend.common.constants.ResourceTypeConstants;
 import com.pickyboy.blingBackend.common.exception.BusinessException;
 import com.pickyboy.blingBackend.common.exception.ErrorCode;
 import com.pickyboy.blingBackend.common.utils.CurrentHolder;
@@ -87,9 +88,12 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         Resources resource = new Resources();
         resource.setKnowledgeBaseId(kbId);
         resource.setUserId(userId);
-        resource.setTitle(createRequest.getTitle());
+        resource.setTitle(createRequest.getTitle()==null?"无标题":createRequest.getTitle());
         resource.setType(createRequest.getType());
         resource.setPreId(createRequest.getPreId());
+        if(resource.getType().equals(ResourceTypeConstants.RESOURCE_TYPE_FOLDER)){
+            resource.setVisibility(1); // 目录默认公开,跟随知识库可见性
+        }
         save(resource);
         return resource;
     }
@@ -107,7 +111,16 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         if (resource == null) {
             throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "资源不存在、其知识库已被删除或无访问权限");
         }
-
+        if(resource.getType().equals(ResourceTypeConstants.RESOURCE_TYPE_FOLDER)){
+            // 目录去掉内容直接返回
+            resource.setContent(null);
+            resource.setStatus(-1);
+            resource.setLikeCount(null);
+            resource.setCommentCount(null);
+            resource.setViewCount(null);
+            resource.setFavoriteCount(null);
+            return resource;
+        }
         // 异步记录浏览历史
         recordViewHistoryAsync(userId, resId);
 
@@ -167,15 +180,19 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         if (updateRequest.getTitle() != null) {
             resource.setTitle(updateRequest.getTitle());
         }
-        if (updateRequest.getContent() != null) {
+        // 目录不支持更新内容,自然不创建版本记录
+        if (updateRequest.getContent() != null&&!resource.getType().equals(ResourceTypeConstants.RESOURCE_TYPE_FOLDER)) {
             String oldContent = resource.getContent();
             String newContent = updateRequest.getContent();
-            // 如果更新了内容且旧内容不为空（首次创建不触发），则创建资源版本记录
-            if (oldContent != null && !oldContent.equals(newContent)) {
-                log.info("内容发生变化，创建版本记录: resId={}, oldContent={}", resource.getId(), oldContent);
-                resourceVersionsService.createResourceVersion(resource.getId(), oldContent);
+            // 每次更新内容都创建资源版本记录
+            if (oldContent==null||!oldContent.equals(newContent)) {
+                log.info("创建版本记录: resId={}, content={}", resource.getId(), newContent);
+                resourceVersionsService.createResourceVersion(resource.getId(), newContent);
+                resource.setContent(newContent);
             }
-            resource.setContent(newContent);
+            else {
+                log.info("内容路径未发生变化,不更新内容,不创建版本记录: resId={}, content={}", resource.getId(), newContent);
+            }
         }
         updateById(resource);
     }
@@ -275,6 +292,11 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
             throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "资源不存在或其知识库已被删除");
         }
 
+        // 目录不支持修改可见性
+        if (resource.getType().equals(ResourceTypeConstants.RESOURCE_TYPE_FOLDER)) {
+            throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED, "目录不支持修改可见性");
+        }
+
         // 权限验证：只有资源所有者可以修改可见性
         if (!resource.getUserId().equals(userId)) {
             throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED);
@@ -285,7 +307,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
     }
 
     /*
-     * 更新资源状态(上架/下架) 0:下架 1:上架
+     * 更新资源状态(上架/下架) 0:下架 1:上架 2: 强制下架(管理员)
      */
     @Override
     public void updateResourceStatus(Long resId, Object statusRequest) {
@@ -300,6 +322,21 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         Resources resource = baseMapper.selectResourceInActiveKb(resId);
         if (resource == null) {
             throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "资源不存在或其知识库已被删除");
+        }
+
+        // 目录不支持修改状态
+        if (resource.getType().equals(ResourceTypeConstants.RESOURCE_TYPE_FOLDER)) {
+            throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED, "目录不支持修改状态");
+        }
+
+        // 被强制下架的资源不能修改状态
+        if (resource.getStatus() == 2) {
+            throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED, "被强制下架的资源不能修改状态");
+        }
+
+        // 不能修改资源状态为2(强制下架)
+        if (sRequest.getStatus() == 2) {
+            throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED, "不能修改资源状态为2(强制下架),请联系管理员");
         }
 
         // 权限验证：只有资源所有者可以修改状态
@@ -525,15 +562,18 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         // 验证目标知识库是否存在且有权限访问
         knowledgeBaseValidationService.validateKnowledgeBaseOwnership(copyRequest.getTargetKbId(), userId);
 
+        // 目录不复制具体内容
         // 2. 深拷贝文件内容
-        // 假设资源类型存储在resource.getType()中，如果没有则用默认值
         String uploadType = "resource";
-        String newContentUrl = minioUtil.copyObject(
+        String newContentUrl =null;
+        if(!resource.getType().equals(ResourceTypeConstants.RESOURCE_TYPE_FOLDER)){
+        newContentUrl = minioUtil.copyObject(
             resource.getContent(),      // 源文件URL
             resource.getTitle(),        // 使用原标题作为新文件名
-            uploadType,                 // 目标上传类型 (决定存储桶)
-            userId.toString()           // 当前用户ID
-        );
+                uploadType,                 // 目标上传类型 (决定存储桶)
+                userId.toString()           // 当前用户ID
+            );
+        }
 
         // 3. 准备并保存新的资源实体 (这里不能直接修改原resource对象)
         Resources newResource = new Resources();
@@ -543,6 +583,8 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         newResource.setId(null); // 清除ID，让数据库自动生成
         newResource.setKnowledgeBaseId(copyRequest.getTargetKbId());
         newResource.setPreId(copyRequest.getTargetPreId());
+        newResource.setType(resource.getType());
+        newResource.setUserId(userId);
         newResource.setContent(newContentUrl); // 设置新的文件URL
         newResource.setCreatedAt(null);
         newResource.setUpdatedAt(null);
@@ -553,7 +595,13 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         newResource.setCommentCount(0);
         newResource.setFavoriteCount(0);
         newResource.setShareId(null);
-        newResource.setVisibility(0);
+        // 目录默认公开,跟随知识库可见性
+        if(resource.getType().equals(ResourceTypeConstants.RESOURCE_TYPE_FOLDER)){
+            newResource.setVisibility(1);
+        }
+        else {
+            newResource.setVisibility(0);
+        }
         newResource.setPublishedAt(null);
 
         save(newResource);
@@ -655,6 +703,11 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         if (resource == null) {
             throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "文章不存在、其知识库已被删除或无访问权限");
         }
+        // 目录不支持点赞
+        if (resource.getType().equals(ResourceTypeConstants.RESOURCE_TYPE_FOLDER)) {
+            throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED, "目录不支持点赞");
+        }
+
         // 查询是否已点赞
         Likes like = likesService.getOne(new LambdaQueryWrapper<Likes>()
             .eq(Likes::getUserId, userId)
@@ -688,6 +741,11 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         if (resource == null) {
             throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "文章不存在、其知识库已被删除或无访问权限");
         }
+        // 目录不支持取消点赞
+        if (resource.getType().equals(ResourceTypeConstants.RESOURCE_TYPE_FOLDER)) {
+            throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED, "目录不支持取消点赞");
+        }
+
         Likes like = likesService.getOne(new LambdaQueryWrapper<Likes>()
             .eq(Likes::getUserId, userId)
             .eq(Likes::getResourceId, articleId)
@@ -715,6 +773,10 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         Resources resource = baseMapper.selectResourceInActiveKbWithUser(articleId, userId);
         if (resource == null) {
             throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "文章不存在、其知识库已被删除或无访问权限");
+        }
+        // 目录不支持评论
+        if (resource.getType().equals(ResourceTypeConstants.RESOURCE_TYPE_FOLDER)) {
+            throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED, "目录不支持评论");
         }
         // 查询根评论(preId为null)
         List<RootCommentVO> comments = commentsService.listRootComments(articleId, (page - 1) * limit, limit);
@@ -762,6 +824,10 @@ public class ResourceServiceImpl extends ServiceImpl<ResourcesMapper, Resources>
         Resources resource = baseMapper.selectResourceInActiveKbWithUser(articleId, userId);
         if (resource == null) {
             throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "文章不存在、其知识库已被删除或无访问权限");
+        }
+        // 目录不支持评论
+        if (resource.getType().equals(ResourceTypeConstants.RESOURCE_TYPE_FOLDER)) {
+            throw new BusinessException(ErrorCode.RESOURCE_ACCESS_DENIED, "目录不支持评论");
         }
 
         // 2. 构造评论

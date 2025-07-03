@@ -122,4 +122,13 @@ public interface ResourcesMapper extends BaseMapper<Resources> {
      * @return 影响行数
      */
     int decrementCommentCount(@Param("resourceId") Long resourceId);
+
+    /**
+     * 获取用户编辑历史
+     * @param userId 用户ID
+     * @param offset 偏移量
+     * @param limit 限制数量
+     * @return 用户编辑历史列表
+     */
+    List<com.pickyboy.blingBackend.domain.vo.user.ActivityRecord> getUserEditHistory(@Param("userId") Long userId, @Param("offset") Integer offset, @Param("limit") Integer limit);
 }

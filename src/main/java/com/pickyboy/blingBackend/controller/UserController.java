@@ -246,4 +246,21 @@ public class UserController {
         List<ActivityRecord> comments = userService.getUserCommentHistory(page, limit);
         return Result.success(comments);
     }
+
+    /**
+     * 获取编辑历史记录
+     * GET /user/history/resources
+     *
+     * @param page 页码
+     * @param limit 每页数量
+     * @return 用户编辑历史列表
+     */
+    @GetMapping("/user/history/resources")
+    public Result<List<ActivityRecord>> getUserEditHistory(
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "20") Integer limit) {
+        log.info("获取用户编辑历史: page={}, limit={}", page, limit);
+        List<ActivityRecord> editHistory = userService.getUserEditHistory(page, limit);
+        return Result.success(editHistory);
+    }
 }

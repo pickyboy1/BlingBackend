@@ -27,6 +27,7 @@ import com.pickyboy.blingBackend.domain.vo.user.UserPublicProfile;
 import com.pickyboy.blingBackend.domain.vo.user.UserSummary;
 import com.pickyboy.blingBackend.mapper.CommentsMapper;
 import com.pickyboy.blingBackend.mapper.LikesMapper;
+import com.pickyboy.blingBackend.mapper.ResourcesMapper;
 import com.pickyboy.blingBackend.mapper.UsersMapper;
 import com.pickyboy.blingBackend.mapper.ViewHistoriesMapper;
 import com.pickyboy.blingBackend.service.IKnowledgeBaseService;
@@ -56,6 +57,7 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
     private final CommentsMapper commentsMapper;
     private final IUserFollowsService userFollowsService;
     private final ViewHistoriesMapper viewHistoriesMapper;
+    private final ResourcesMapper resourcesMapper;
 
     @Override
     @Transactional
@@ -368,6 +370,18 @@ public class UserServiceImpl extends ServiceImpl<UsersMapper, Users> implements 
         }
 
         List<ActivityRecord> activityRecords = commentsMapper.commentHistory(currentUserId, (page - 1) * limit, limit);
+        return activityRecords;
+    }
+
+    @Override
+    public List<ActivityRecord> getUserEditHistory(Integer page, Integer limit) {
+        log.info("获取用户编辑历史: page={}, limit={}", page, limit);
+        Long currentUserId = CurrentHolder.getCurrentUserId();
+        if (currentUserId == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+
+        List<ActivityRecord> activityRecords = resourcesMapper.getUserEditHistory(currentUserId, (page - 1) * limit, limit);
         return activityRecords;
     }
 }

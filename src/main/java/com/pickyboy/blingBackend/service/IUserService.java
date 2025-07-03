@@ -128,4 +128,13 @@ public interface IUserService extends IService<Users> {
      * @return 用户评论列表
      */
     List<ActivityRecord> getUserCommentHistory(Integer page, Integer limit);
+
+    /**
+     * 获取用户编辑历史
+     *
+     * @param page 页码
+     * @param limit 每页数量
+     * @return 用户编辑历史列表
+     */
+    List<ActivityRecord> getUserEditHistory(Integer page, Integer limit);
 }

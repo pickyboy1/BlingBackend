@@ -156,4 +156,31 @@
         WHERE id = #{resourceId}
     </update>
 
+    <!-- 获取用户编辑历史 -->
+    <select id="getUserEditHistory" resultType="com.pickyboy.blingBackend.domain.vo.user.ActivityRecord">
+        SELECT
+            r.id AS resourceId,
+            r.title AS resourceTitle,
+            r.type AS resourceType,
+            r.knowledge_base_id AS kbId,
+            kb.name AS kbName,
+            r.user_id AS authorId,
+            u.nickname AS authorName,
+            r.updated_at AS actionAt,
+            CASE
+                WHEN r.is_deleted = 1 THEN 'ARTICLE_DELETED'
+                WHEN kb.is_deleted = 1 THEN 'KB_DELETED'
+                WHEN u.is_deleted = 1 THEN 'AUTHOR_DELETED'
+                WHEN (r.visibility = 0 OR kb.visibility = 0) AND r.user_id != #{userId} THEN 'PRIVATE'
+                ELSE 'NORMAL'
+            END AS status
+        FROM resources r
+        LEFT JOIN knowledge_bases kb ON r.knowledge_base_id = kb.id
+        LEFT JOIN users u ON r.user_id = u.id
+        WHERE r.user_id = #{userId}
+          AND r.type != 'folder'
+        ORDER BY r.updated_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
 </mapper>
