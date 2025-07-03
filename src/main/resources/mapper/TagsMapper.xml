@@ -1,5 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.pickyboy.blingBackend.mapper.TagsMapper">
-
+    <update id="batchDecrementReferedCount">
+        UPDATE tags
+        SET
+        refered_count = CASE id
+        <foreach collection="tagDecrementMap.entries" item="entry">
+            WHEN #{entry.key} THEN GREATEST(refered_count - #{entry.value}, 0)
+        </foreach>
+        END
+        WHERE
+        id IN
+        <foreach collection="tagDecrementMap.keys" item="tagId" open="(" separator="," close=")">
+            #{tagId}
+        </foreach>
+    </update>
 </mapper>

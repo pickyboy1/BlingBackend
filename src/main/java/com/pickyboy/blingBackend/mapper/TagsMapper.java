@@ -2,6 +2,9 @@ package com.pickyboy.blingBackend.mapper;
 
 import com.pickyboy.blingBackend.domain.entity.Tags;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.Map;
 
 /**
  * <p>
@@ -13,4 +16,5 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
  */
 public interface TagsMapper extends BaseMapper<Tags> {
 
+    int batchDecrementReferedCount(@Param("tagDecrementMap") Map<Long, Long> tagDecrementMap);
 }

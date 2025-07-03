@@ -17,6 +17,7 @@ import com.pickyboy.blingBackend.domain.dto.note.SetNoteTagsRequest;
 import com.pickyboy.blingBackend.domain.dto.note.UpdateNoteRequest;
 import com.pickyboy.blingBackend.domain.entity.NoteTagMap;
 import com.pickyboy.blingBackend.domain.entity.Tags;
+import com.pickyboy.blingBackend.mapper.TagsMapper;
 import com.pickyboy.blingBackend.service.INoteTagMapService;
 import com.pickyboy.blingBackend.service.ITagService;
 
@@ -51,6 +52,9 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
 
     @Autowired
     private INoteTagMapService noteTagMapService;
+
+    @Autowired
+    private TagsMapper tagsMapper;
 
     @Override
     public List<NoteListVO> getNoteList(Long tagId,String keyword, Integer page, Integer limit, String sortBy, String order) {
@@ -253,16 +257,8 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
             }
 
             // 更新标签引用计数
-            // todo: 写XML方法,批量更新
-            for (Map.Entry<Long, Long> entry : tagDecrementMap.entrySet()) {
-                Long tagId = entry.getKey();
-                Long decrementCount = entry.getValue();
-
-                tagService.update(
-                        new LambdaUpdateWrapper<Tags>()
-                                .eq(Tags::getId, tagId)
-                                .setSql("refered_count = GREATEST(refered_count - " + decrementCount + ", 0)")
-                );
+            if(!tagDecrementMap.isEmpty()) {
+                tagsMapper.batchDecrementReferedCount(tagDecrementMap);
             }
         }
 
@@ -519,8 +515,6 @@ public class NoteServiceImpl extends ServiceImpl<NotesMapper, Notes> implements 
             );
 
             // 更新标签引用计数
-
-            // todo: 改为批量更新
 
                 tagService.update(
                         new LambdaUpdateWrapper<Tags>()
